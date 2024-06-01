@@ -1,2 +1,2 @@
 # LatticeCryptography
-Lattice reduction 
+Lattice reduction project
