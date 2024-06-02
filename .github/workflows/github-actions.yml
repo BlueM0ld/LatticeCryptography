@@ -2,7 +2,7 @@ name: Github Actions LatticeCryptography
 run-name: ${{github.actor}} testing GitHub Actions
 on: [push]
 jobs:
-    Run-GitHub-Actions:
+  Run-GitHub-Actions:
     runs-on: ubuntu-latest
     steps:
       - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
