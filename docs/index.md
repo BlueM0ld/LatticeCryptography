@@ -1,4 +1,4 @@
-# Project Name
+
 Welcome to the **Lattice Cryptography** documentation.
 
  
@@ -18,7 +18,7 @@ Welcome to the **Lattice Cryptography** documentation.
 
 ## Introduction
 
-**Lattice Cryptography** is a artifact for a master's level thesis.
+This project  **Lattice Cryptography** is a artifact for a master's level thesis.
 
 ## Getting Started
 
