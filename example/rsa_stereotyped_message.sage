@@ -1,42 +1,89 @@
-from sage.all import *
+from sage.all import Integer, log, matrix, random_prime, RR, ZZ, PolynomialRing
+import matplotlib.pyplot as plt
+from fpylll import GSO, IntegerMatrix
 
-# Define the RSA encryption parameters
-N = random_prime(2**150) * random_prime(2**150)  # RSA modulus N
-message = Integer('thepasswordfortodayisswordfish', base=35)  # Message to encrypt
+def plot_gso(log_gso_norms):
+    plt.figure(figsize=(10, 6))
+    for i, vec in enumerate(log_gso_norms):
+        plt.plot(range(len(vec)), vec, label=f"Vector {i+1}")
+    plt.ylabel("log Gram-Schmidt Norms")
+    plt.title("LLL Reduction")
+    plt.legend()
+    plt.show()
 
-# Encrypt the message using RSA encryption (with e=3)
-c = message^3 % N
+def compute_and_plot_gso(M):
+    # Perform LLL reduction on mat to obtain the reduced basis reducedL
+    reducedL = M.LLL()
+    fpylll_matrix = convert_to_fpylll(reducedL)
+    M = GSO.Mat(fpylll_matrix)
+    M.update_gso()
+    square_gso_norms = M.r()
+    log_gso_norms = [RR(log(square_gso_norm, 2)/2) for square_gso_norm in square_gso_norms]
+    
+    # Plot GSO norms
+    plot_gso([log_gso_norms])
+    
+    return reducedL
 
-# Define the known and unknown parts of the message
-known_prefix = 'thepasswordfortodayis000000000'
-unknown_part = 'xxxxxxxxx'
+def convert_to_fpylll(mat):
+    return IntegerMatrix.from_matrix(mat)
 
-# Convert known and unknown parts to integers in base 35
-a = Integer(known_prefix, base=35)
-X = Integer(unknown_part, base=35)
+def coppersmith_univariate(N, c, known_prefix, unknown_length, e=3):
+    # Convert known part to integer
+    a = Integer(known_prefix, base=35)
+    
+    # Create a large X value based on the length of the unknown part
+    X = Integer('1' + '0' * unknown_length, base=35)
+    
+    # Construct the matrix M for LLL reduction
+    M = matrix(ZZ, [
+        [X**e, e*X**(e-1)*a, e*X*(a**(e-1)), a**e - c],
+        [0, N*X**(e-1), 0, 0],
+        [0, 0, N*X, 0],
+        [0, 0, 0, N]
+    ])
 
-# Construct the matrix M for LLL reduction
-M = matrix([
-    [X^3, 3*X^2*a, 3*X*a^2, a^3 - c],
-    [0, N*X^2, 0, 0],
-    [0, 0, N*X, 0],
-    [0, 0, 0, N]
-])
+    # Compute and plot GSO norms, and get the reduced basis
+    B = compute_and_plot_gso(M)
+    
+    # Define the polynomial ring and variable x
+    PolynomialRingZZ = PolynomialRing(ZZ, 'x')
+    x = PolynomialRingZZ.gen()
+    
+    # Extract the first polynomial Q from the reduced basis B
+    Q = B[0][0] * x**e // X**e + B[0][1] * x**(e-1) // X**(e-1) + B[0][2] * x // X + B[0][3]
+    
+    # Find the roots of Q(x) over the ring of integers (ZZ)
+    roots = Q.roots(ring=ZZ)
+    
+    if roots:
+        recovered_root = roots[0][0]
 
-# Perform LLL reduction on M to obtain the reduced basis B
-B = M.LLL()
+        # Convert the recovered root to a base-35 string to recover the message
+        recovered_message = Integer(recovered_root).str(base=35)
+        
+        return Q, recovered_root, recovered_message
+    else:
+        return Q, None, None
 
-# Extract the first polynomial Q from the reduced basis B
-Q = B[0][0]*x^3/X^3 + B[0][1]*x^2/X^2 + B[0][2]*x/X + B[0][3]
+if __name__ == '__main__':
+    # RSA modulus N
+    N = random_prime(2**150) * random_prime(2**150)
+    message = Integer('thepasswordfortodayisswordfish', base=35)
 
-# Find the roots of Q(x) over the ring of integers (ZZ)
-recovered_root = Q.roots(ring=ZZ)[0][0]
+    # Encrypt with e=3
+    e = 3
+    c = message**e % N
 
-# Convert the recovered root to a base-35 string to recover the message
-recovered_message = Integer(recovered_root).str(base=35)
+    # Define the known and unknown parts of the message
+    known_prefix = 'thepasswordfortodayis000000000'
+    unknown_length = 9  # Length of the unknown part
 
-# Print the recovered message
-#print("B:", B)
-print("Q:", Q)
-print("Recovered root:", recovered_root)
-print("Recovered Message:", recovered_message)
+    Q, recovered_root, recovered_message = coppersmith_univariate(N, c, known_prefix, unknown_length, e)
+
+    if recovered_root is not None:
+        print("Q:", Q)
+        print("Recovered root:", recovered_root)
+        print("Recovered Message:", recovered_message)
+    else:
+        print("No roots found for the polynomial Q(x).")
