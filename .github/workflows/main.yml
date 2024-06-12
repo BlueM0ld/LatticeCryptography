@@ -33,11 +33,6 @@ jobs:
         echo "VIRTUAL ENV:" $VIRTUAL_ENV
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-    - name: Install fpylll
-      run: |
-        pip install fpylll
-
     - name: Run tests and save results
       run: |
         mkdir -p test-results
