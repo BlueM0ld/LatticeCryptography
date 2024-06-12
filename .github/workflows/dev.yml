@@ -26,7 +26,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y sagemath build-essential libmpfr-dev libgmp-dev
         python -m pip install --upgrade pip setuptools wheel
+        python -m pip install Cython==0.29.24
         pip install matplotlib
+        pip install fplll==5.3.3  
         pip install fpylll --verbose
 
     - name: Run tests
