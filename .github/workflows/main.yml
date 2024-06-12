@@ -27,7 +27,8 @@ jobs:
       run: ls -l
     - name: Install dependencies
       run: |
-        sudo apt-get install libmpc-dev 
+        sudo apt-get update
+        sudo apt-get install -y libmpc-dev libfplll-dev
         pip install --upgrade pip setuptools
         python -m pip install --upgrade pip
         python3.10 -m venv env
