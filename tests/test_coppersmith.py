@@ -1,6 +1,5 @@
 import unittest
 from sage.all import Integer, random_prime
-# replace 'your_module' with the actual name of your module file
 from coppersmith_temp import coppersmith_univariate
 
 
