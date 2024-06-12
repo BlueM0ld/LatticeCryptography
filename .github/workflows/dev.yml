@@ -28,6 +28,18 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run tests
+    - name: Run tests and save results
       run: |
-        python -m unittest discover -s tests
+        mkdir -p test-results
+        python -m unittest discover -s tests > test-results/results.txt
+
+    - name: Append test results to docs
+      run: |
+        echo "\n## Test Results\n" >> docs.md
+        cat test-results/results.txt >> docs.md
+
+    - name: Upload updated docs.md
+      uses: actions/upload-artifact@v2
+      with:
+        name: updated-docs
+        path: docs.md

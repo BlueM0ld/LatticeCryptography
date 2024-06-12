@@ -1,7 +1,4 @@
-
 Welcome to the **Lattice Cryptography** documentation.
-
- 
 
 ## Table of Contents
 
@@ -18,7 +15,7 @@ Welcome to the **Lattice Cryptography** documentation.
 
 ## Introduction
 
-This project  **Lattice Cryptography** is a artifact for a master's level thesis.
+This project **Lattice Cryptography** is a artifact for a master's level thesis.
 
 An interactive visualistion for the Gram-Schmidt orthogonalization (GSO) norms after LLL reduction. Users can adjust parameters and see how the norms change.
 Here: [Lattice Cryptography](./docs/index.html) page (IN PROGRESS)
@@ -32,4 +29,10 @@ To get started with Lattice Cryptography, follow these steps:
 3. [Usage](#usage)
 
 ## Installation
+
+...
+
+## Test Results
+
+<!-- This section will be populated by the GitHub Actions workflow with test results -->
 
