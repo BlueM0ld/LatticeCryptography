@@ -30,13 +30,12 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libmpc-dev libfplll-dev
         sudo apt-get install -y sagemath
-        pip install --upgrade pip setuptools
         python -m pip install pip --upgrade
         python3.10 -m venv env
         source env/bin/activate
         echo "VIRTUAL ENV:" $VIRTUAL_ENV
         pip install flake8 pytest
-        pip install python3-wheel
+        pip install --upgrade setuptools wheel twine
         pip install Cython
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run tests and save results
