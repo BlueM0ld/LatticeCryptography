@@ -40,11 +40,12 @@ jobs:
         run: |
           source env/bin/activate
           echo "VIRTUAL ENV:" $VIRTUAL_ENV
-          pip install --upgrade pip 
+          python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install --upgrade setuptools wheel twine
           pip install --upgrade Cython
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
       
       - name: Run unit tests
         run: |
