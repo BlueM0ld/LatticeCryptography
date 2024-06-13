@@ -22,14 +22,13 @@ jobs:
         with:
           python-version: "3.11"
       
-      - name: List files in root directory
-        run: ls -l
-      
       - name: Update apt-get
         run: sudo apt-get update
       
       - name: Install dependencies
-        run: sudo apt-get install -y libmpc-dev libfplll-dev libgmp-dev libmpfr-dev
+        run: |
+          sudo apt-get install -y libmpc-dev libfplll-dev libgmp-dev libmpfr-dev
+          sudo apt-get install -y sagemath
       
       - name: Set up virtual environment
         run: |
