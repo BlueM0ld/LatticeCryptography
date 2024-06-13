@@ -27,7 +27,6 @@ Sphinx==7.3.7
 thread==2.0.3
 toml==0.10.2
 tornado==6.4.1
-xmlrpclib==1.0.1
 zipp==3.19.2
 cysignals
 black
