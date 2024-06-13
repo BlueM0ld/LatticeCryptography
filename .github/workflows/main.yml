@@ -29,6 +29,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libmpc-dev libfplll-dev
+        pip install Cython
         sudo apt-get install -y sagemath
         pip install --upgrade pip setuptools
         python -m pip install --upgrade pip
