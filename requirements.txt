@@ -30,3 +30,6 @@ toml==0.10.2
 tornado==6.4.1
 xmlrpclib==1.0.1
 zipp==3.19.2
+Cython>=3.0
+cysignals
+black
