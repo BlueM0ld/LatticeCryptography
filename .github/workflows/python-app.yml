@@ -33,6 +33,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y sagemath
 
+    - name: Set up environment for SageMath
+      run: |
+        echo 'export SAGE_ROOT=/usr/share/sagemath' >> $GITHUB_ENV
+        echo 'export PYTHONPATH=$PYTHONPATH:/usr/lib/sagemath' >> $GITHUB_ENV
+
+    - name: Check SageMath installation
+      run: sage --version
+
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
