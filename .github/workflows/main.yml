@@ -44,11 +44,6 @@ jobs:
         pip install --upgrade setuptools wheel twine
         pip install --upgrade Cython
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        # Install fpylll from source as a workaround
-        git clone https://github.com/fplll/fpylll.git
-        cd fpylll
-        pip install .
-        cd ..
     - name: Run tests and save results
       run: |
         source env/bin/activate
