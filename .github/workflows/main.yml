@@ -44,17 +44,20 @@ jobs:
         pip install --upgrade setuptools wheel twine
         pip install --upgrade Cython
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Run tests and save results
+    - name: Run tests
       run: |
         source env/bin/activate
         mkdir -p test-results
         pytest > test-results/results.txt
-    - name: Append test results to docs
-      run: |
-        echo "\n## Test Results\n" >> docs.md
-        cat test-results/results.txt >> docs.md
-    - name: Upload updated docs.md
+        cat test-results/results.txt
+      shell: /usr/bin/bash -e {0}
+      env:
+        pythonLocation: /opt/hostedtoolcache/Python/3.11.9/x64
+        LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.9/x64/lib
+
+    - name: Upload test results
+      if: always()
       uses: actions/upload-artifact@v2
       with:
-        name: updated-docs
-        path: docs.md
+        name: test-results
+        path: test-results/results.txt
