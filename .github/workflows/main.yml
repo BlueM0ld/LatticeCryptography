@@ -28,9 +28,15 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libmpc-dev libfplll-dev
-        sudo apt-get install -y sagemath
-        python3.10 -m venv env
+        sudo apt-get install -y libmpc-dev libfplll-dev libgmp-dev libmpfr-dev
+    - name: Set up virtual environment
+      run: |
+        python -m venv env
+        source env/bin/activate
+        pip install --upgrade pip setuptools wheel Cython
+
+    - name: Install Python dependencies
+      run: |
         source env/bin/activate
         echo "VIRTUAL ENV:" $VIRTUAL_ENV
         pip install --upgrade pip 
@@ -38,10 +44,16 @@ jobs:
         pip install --upgrade setuptools wheel twine
         pip install --upgrade Cython
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        # Install fpylll from source as a workaround
+        git clone https://github.com/fplll/fpylll.git
+        cd fpylll
+        pip install .
+        cd ..
     - name: Run tests and save results
       run: |
+        source env/bin/activate
         mkdir -p test-results
-        python -m unittest discover -s tests > test-results/results.txt
+        pytest > test-results/results.txt
     - name: Append test results to docs
       run: |
         echo "\n## Test Results\n" >> docs.md
