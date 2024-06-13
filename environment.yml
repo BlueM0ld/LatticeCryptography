@@ -1,0 +1,14 @@
+name: sagemath-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - sage=9.7
+  - pip
+  - flake8
+  - pytest
+  - Cython
+  - pip:
+      - setuptools
+      - wheel
+      - twine

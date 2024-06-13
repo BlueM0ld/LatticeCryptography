@@ -21,32 +21,31 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: "3.11"
-      
-      - name: Update apt-get
-        run: sudo apt-get update
-      
-      - name: Install dependencies
+
+      - name: Install Miniconda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: "3.11"
+          activate-environment: sagemath-env
+          environment-file: environment.yml
+
+      - name: List files in root directory
+        run: ls -l
+
+      - name: Set up conda environment and install dependencies
         run: |
-          sudo apt-get install -y libmpc-dev libfplll-dev libgmp-dev libmpfr-dev
-          sudo apt-get install -y sagemath
-      
-      - name: Set up virtual environment
-        run: |
-          python -m venv env
-          source env/bin/activate
-          pip install --upgrade pip setuptools wheel Cython
-      
+          conda env create -f environment.yml
+          conda activate sagemath-env
+
       - name: Install Python dependencies
         run: |
-          source env/bin/activate
-          echo "VIRTUAL ENV:" $VIRTUAL_ENV
-          pip install --upgrade pip 
+          conda activate sagemath-env
+          pip install --upgrade pip setuptools wheel Cython
           pip install flake8 pytest
-          pip install --upgrade setuptools wheel twine
-          pip install --upgrade Cython
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      
+
       - name: Run unit tests
         run: |
-          source env/bin/activate
+          conda activate sagemath-env
           python -m pytest --import-mode=append tests/
