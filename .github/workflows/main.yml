@@ -36,6 +36,7 @@ jobs:
         source env/bin/activate
         echo "VIRTUAL ENV:" $VIRTUAL_ENV
         pip install flake8 pytest
+        pip install python3-wheel
         pip install Cython
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     - name: Run tests and save results
