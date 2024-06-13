@@ -1,5 +1,5 @@
 import pytest
-from src import coppersmith_univariate
+from src import coppersmith_temp
 from sage.all import Integer, random_prime
 
 
@@ -16,7 +16,7 @@ def test_coppersmith_univariate():
     known_prefix = 'thepasswordfortodayis000000000'
     unknown_length = 9  # Length of the unknown part
 
-    Q, recovered_root, recovered_message = coppersmith_univariate(
+    Q, recovered_root, recovered_message = coppersmith_temp.coppersmith_univariate(
         N, c, known_prefix, unknown_length, e)
 
     assert recovered_root is not None, "Failed to recover the root"
