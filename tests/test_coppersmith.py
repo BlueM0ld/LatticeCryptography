@@ -1,29 +1,27 @@
-import unittest
+import pytest
+from src import coppersmith_univariate
 from sage.all import Integer, random_prime
-from src import coppersmith_temp
 
 
-class TestCoppersmithUnivariate(unittest.TestCase):
-    def test_coppersmith_univariate(self):
-        # RSA modulus N
-        N = random_prime(2**150) * random_prime(2**150)
-        message = Integer('thepasswordfortodayisswordfish', base=35)
+def test_coppersmith_univariate():
+    # RSA modulus N
+    N = random_prime(2**150) * random_prime(2**150)
+    message = Integer('thepasswordfortodayisswordfish', base=35)
 
-        # Encrypt with e=3
-        e = 3
-        c = message**e % N
+    # Encrypt with e=3
+    e = 3
+    c = message**e % N
 
-        # Define the known and unknown parts of the message
-        known_prefix = 'thepasswordfortodayis000000000'
-        unknown_length = 9  # Length of the unknown part
+    # Define the known and unknown parts of the message
+    known_prefix = 'thepasswordfortodayis000000000'
+    unknown_length = 9  # Length of the unknown part
 
-        Q, recovered_root, recovered_message = coppersmith_temp(
-            N, c, known_prefix, unknown_length, e)
+    Q, recovered_root, recovered_message = coppersmith_univariate(
+        N, c, known_prefix, unknown_length, e)
 
-        self.assertIsNotNone(recovered_root, "Failed to recover the root")
-        self.assertEqual(recovered_message, 'swordfish',
-                         "Recovered message is incorrect")
+    assert recovered_root is not None, "Failed to recover the root"
+    assert recovered_message == 'swordfish', "Recovered message is incorrect"
 
 
 if __name__ == '__main__':
-    unittest.main()
+    pytest.main()
