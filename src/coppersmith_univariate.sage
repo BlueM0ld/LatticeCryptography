@@ -2,7 +2,7 @@ from sage.all import *
 import matplotlib.pyplot as plt
 from fpylll import GSO, IntegerMatrix
 
-# Function to plot GSO norms
+# Graph setup
 def plot_gso(log_gso_norms):
     plt.figure(figsize=(10, 6))
     for i, vec in enumerate(log_gso_norms):
@@ -11,9 +11,7 @@ def plot_gso(log_gso_norms):
     plt.title("LLL Reduction")
     plt.legend()
     plt.show()
-
-# Function to compute and plot GSO norms
-def compute_and_plot_gso(M):
+#def compute_and_plot_gso(M):
     reducedL = M.LLL()
     fpylll_matrix = convert_to_fpylll(reducedL)
     M = GSO.Mat(fpylll_matrix)
@@ -25,16 +23,14 @@ def compute_and_plot_gso(M):
     
     return reducedL
 
-# Function to convert a Sage matrix to fpylll matrix
+# convert a Sage matrix to fpylll matrix
 def convert_to_fpylll(mat):
     return IntegerMatrix.from_matrix(mat)
 
-# Normalize polynomial function
 def normalise_polynomial(polynomial):
     polynomial /= polynomial.coefficients().pop(0)
     return polynomial.change_ring(ZZ)
 
-# Generate shifted polynomials function
 def generate_shifted_polynomials(polynomial, N, m, d):
     R = polynomial.base_ring()
     G = []
@@ -58,9 +54,7 @@ def generate_shifted_polynomials(polynomial, N, m, d):
     
     return G
 
-# Construct lattice function
 def construct_lattice(G):
-    # Collect coefficients and monomials
     coefficients = []
     monomials = set()
     for g in G:
@@ -75,7 +69,6 @@ def construct_lattice(G):
     lattice_basis_mtrx = matrix(ZZ, coefficients)
     return lattice_basis_mtrx, vector(monomials)
 
-# Rescale and reduce matrix function
 def rescale_and_reduce_matrix(lattice_basis_mtrx, monomials, bounds):
     factors = [monomial(*bounds) for monomial in monomials]
     
@@ -91,7 +84,6 @@ def rescale_and_reduce_matrix(lattice_basis_mtrx, monomials, bounds):
     
     return lattice_basis_mtrx, monomials
 
-# Extract roots function
 def extract_roots(lattice_basis_mtrx, monomials, polynomial, R):
     H = Sequence([], polynomial.parent().change_ring(QQ))
     
@@ -110,7 +102,6 @@ def extract_roots(lattice_basis_mtrx, monomials, polynomial, R):
     
     return []
 
-# Small roots function
 def small_roots(polynomial, bounds, m=1, d=None):
     if not d:
         d = polynomial.degree()
@@ -130,19 +121,14 @@ def small_roots(polynomial, bounds, m=1, d=None):
     
     return extract_roots(lattice_basis_mtrx, monomials, polynomial, R)
 
-
-
 def coppersmith_univariate(N, c, known_prefix, unknown_length, e):
-    # Convert known prefix to an integer
     known_prefix_int = Integer(known_prefix, base=35)
-    shift = Integer(35) ** unknown_length
     X = Integer(35) ** unknown_length
 
-    # Construct the polynomial f(x) = (known_prefix_int + x)^e - c
     P.<x> = PolynomialRing(Zmod(N), 1)
     polynomial = (known_prefix_int + x) ^ e - c
 
-    # Find small roots of the polynomial
+    #call small roots functions
     roots = small_roots(polynomial, (X,))
     if roots:
         recovered_root = roots[0][0]
@@ -153,3 +139,50 @@ def coppersmith_univariate(N, c, known_prefix, unknown_length, e):
     else:
         print("No roots found")
         return None
+
+def coppersmith_suffix(N, c, known_suffix, unknown_length, e):
+    known_suffix_int = Integer(known_suffix, base=35)
+    X = Integer(35) ** unknown_length
+
+    P.<x> = PolynomialRing(Zmod(N), 1)
+    polynomial = (x * X + known_suffix_int) ^ e - c
+
+    roots = small_roots(polynomial, (X,))
+    if roots:
+        recovered_root = roots[0][0]
+        recovered_message = recovered_root * X + known_suffix_int
+        recovered_message_str = Integer(recovered_message).str(base=35)
+        print("Recovered message:", recovered_message_str)
+        print("Recovered root:", Integer(recovered_message).str(base=35))
+        return recovered_message
+    else:
+        print("No roots found")
+        return None
+
+def coppersmith_random_positions(N, c, known_positions, total_length, e):
+    X = Integer(35) ** total_length
+    P.<x> = PolynomialRing(Zmod(N), 1)
+    
+    known_positions_int = sum(Integer(char, base=35) * (35 ** pos) for pos, char in known_positions.items())
+    variable_mask = sum(35 ** pos for pos in range(total_length) if pos not in known_positions)
+    
+    polynomial = ((known_positions_int + x * variable_mask) ^ e - c)
+    roots = small_roots(polynomial, (X,))
+    
+    if roots:
+        recovered_root = roots[0][0]
+        recovered_message = known_positions_int + recovered_root * variable_mask
+        recovered_message_str = Integer(recovered_message).str(base=35)
+        print("Recovered message:", recovered_message_str)
+        return recovered_message
+    else:
+        print("No roots found")
+        return None
+
+def coppersmith_variable_length(N, c, known_prefix, max_unknown_length, e):
+    for unknown_length in range(1, max_unknown_length + 1):
+        result = coppersmith_univariate(N, c, known_prefix, unknown_length, e)
+        if result is not None:
+            return result
+    print("No valid message found for lengths up to", max_unknown_length)
+    return None
