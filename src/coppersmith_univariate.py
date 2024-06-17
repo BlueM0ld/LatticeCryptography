@@ -8,6 +8,7 @@ from sage.all import *
 import matplotlib.pyplot as plt
 from fpylll import GSO, IntegerMatrix
 
+# Graph setup
 def plot_gso(log_gso_norms):
     plt.figure(figsize=(_sage_const_10 , _sage_const_6 ))
     for i, vec in enumerate(log_gso_norms):
@@ -16,8 +17,7 @@ def plot_gso(log_gso_norms):
     plt.title("LLL Reduction")
     plt.legend()
     plt.show()
-
-def compute_and_plot_gso(M):
+#def compute_and_plot_gso(M):
     reducedL = M.LLL()
     fpylll_matrix = convert_to_fpylll(reducedL)
     M = GSO.Mat(fpylll_matrix)
@@ -29,6 +29,7 @@ def compute_and_plot_gso(M):
     
     return reducedL
 
+# convert a Sage matrix to fpylll matrix
 def convert_to_fpylll(mat):
     return IntegerMatrix.from_matrix(mat)
 
@@ -133,6 +134,7 @@ def coppersmith_univariate(N, c, known_prefix, unknown_length, e):
     P = PolynomialRing(Zmod(N), _sage_const_1 , names=('x',)); (x,) = P._first_ngens(1)
     polynomial = (known_prefix_int + x) ** e - c
 
+    #call small roots functions
     roots = small_roots(polynomial, (X,))
     if roots:
         recovered_root = roots[_sage_const_0 ][_sage_const_0 ]
@@ -143,51 +145,4 @@ def coppersmith_univariate(N, c, known_prefix, unknown_length, e):
     else:
         print("No roots found")
         return None
-
-def coppersmith_suffix(N, c, known_suffix, unknown_length, e):
-    known_suffix_int = Integer(known_suffix, base=_sage_const_35 )
-    X = Integer(_sage_const_35 ) ** unknown_length
-
-    P = PolynomialRing(Zmod(N), _sage_const_1 , names=('x',)); (x,) = P._first_ngens(1)
-    polynomial = (x * X + known_suffix_int) ** e - c
-
-    roots = small_roots(polynomial, (X,))
-    if roots:
-        recovered_root = roots[_sage_const_0 ][_sage_const_0 ]
-        recovered_message = recovered_root * X + known_suffix_int
-        recovered_message_str = Integer(recovered_message).str(base=_sage_const_35 )
-        print("Recovered message:", recovered_message_str)
-        return recovered_message
-    else:
-        print("No roots found")
-        return None
-
-def coppersmith_random_positions(N, c, known_positions, total_length, e):
-    X = Integer(_sage_const_35 ) ** total_length
-    P = PolynomialRing(Zmod(N), _sage_const_1 , names=('x',)); (x,) = P._first_ngens(1)
-    
-    # Construct polynomial with known positions
-    known_positions_int = sum(Integer(char, base=_sage_const_35 ) * (_sage_const_35  ** pos) for pos, char in known_positions.items())
-    variable_mask = sum(_sage_const_35  ** pos for pos in range(total_length) if pos not in known_positions)
-    
-    polynomial = ((known_positions_int + x * variable_mask) ** e - c)
-    roots = small_roots(polynomial, (X,))
-    
-    if roots:
-        recovered_root = roots[_sage_const_0 ][_sage_const_0 ]
-        recovered_message = known_positions_int + recovered_root * variable_mask
-        recovered_message_str = Integer(recovered_message).str(base=_sage_const_35 )
-        print("Recovered message:", recovered_message_str)
-        return recovered_message
-    else:
-        print("No roots found")
-        return None
-
-def coppersmith_variable_length(N, c, known_prefix, max_unknown_length, e):
-    for unknown_length in range(_sage_const_1 , max_unknown_length + _sage_const_1 ):
-        result = coppersmith_univariate(N, c, known_prefix, unknown_length, e)
-        if result is not None:
-            return result
-    print("No valid message found for lengths up to", max_unknown_length)
-    return None
 
