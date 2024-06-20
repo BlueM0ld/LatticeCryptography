@@ -11,7 +11,8 @@ def plot_gso(log_gso_norms):
     plt.title("LLL Reduction")
     plt.legend()
     plt.show()
-#def compute_and_plot_gso(M):
+
+def compute_and_plot_gso(M):
     reducedL = M.LLL()
     fpylll_matrix = convert_to_fpylll(reducedL)
     M = GSO.Mat(fpylll_matrix)
@@ -121,18 +122,18 @@ def small_roots(polynomial, bounds, m=1, d=None):
     
     return extract_roots(lattice_basis_mtrx, monomials, polynomial, R)
 
-def coppersmith_univariate(N, c, known_prefix, unknown_length, e):
-    known_prefix_int = Integer(known_prefix, base=35)
+def coppersmith_univariate(N, c, known_suffix, unknown_length, e):
+    known_suffix_int = Integer(known_suffix, base=35)
     X = Integer(35) ** unknown_length
 
     P.<x> = PolynomialRing(Zmod(N), 1)
-    polynomial = (known_prefix_int + x) ^ e - c
+    polynomial = (x * X + known_suffix_int) ^ e - c
 
-    #call small roots functions
+    # Call small roots functions
     roots = small_roots(polynomial, (X,))
     if roots:
         recovered_root = roots[0][0]
-        recovered_message = known_prefix_int + recovered_root
+        recovered_message = recovered_root * X + known_suffix_int
         recovered_message_str = Integer(recovered_message).str(base=35)
         print("Recovered message:", recovered_message_str)
         return recovered_message
