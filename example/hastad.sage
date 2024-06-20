@@ -20,13 +20,13 @@ def hastads_attack(ciphertexts, moduli, e):
 
     assert len(ciphertexts) == len(moduli), "The number of ciphertexts and moduli must be the same."
     
-    # Combine the ciphertexts using the Chinese Remainder Theorem
+    # use the Chinese Remainder Theorem
     combined_ciphertext = crt(ciphertexts, moduli)
     
-    # Compute the cube root of the combined ciphertext
+    # compute the cube root of the combined ciphertext
     k = len(ciphertexts)
     message, exact = iroot(Integer(combined_ciphertext), k)
-    #recovered_message = combined_ciphertext.nth_root(e)
+
     if exact:
         return int(message)
     else:
