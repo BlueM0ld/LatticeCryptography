@@ -1,31 +1,79 @@
 from sage.all import *
-from fpylll import IntegerMatrix, LLL
+import matplotlib.pyplot as plt
+from fpylll import IntegerMatrix, GSO
 
-def coppersmith_bivariate(polynomial, modulus, m_param, t_param, X_bound, Y_bound):
-    # initialize polynomial ring and quotient ring
-    PR = PolynomialRing(ZZ, names=('u', 'x', 'y'))
-    u, x, y = PR.gens()
-    quotient_ring = PR.quotient(x * y + 1 - u)
-    lifted_polynomial = quotient_ring(polynomial).lift()
-    U_bound = X_bound * Y_bound + 1
-
-    # create shifts of the polynomial
+def polynomial_shifts_calc(m_param, lifted_polynomial, u, x, y, modulus):
     polynomial_shifts = []
     for k in range(m_param + 1):
         for i in range(m_param - k + 1):
             x_shift = x**i * modulus**(m_param - k) * lifted_polynomial(u, x, y)**k
             polynomial_shifts.append(x_shift)
     polynomial_shifts.sort()
+    return polynomial_shifts
 
-    # find monomials
+def find_monomials(polynomial_shifts):
     monomials = []
     for polynomial in polynomial_shifts:
         for monomial in polynomial.monomials():
             if monomial not in monomials:
                 monomials.append(monomial)
     monomials.sort()
+    return monomials
 
-    # Additional polynomial shifts for y
+def convert_to_fpylll(mat):
+    return IntegerMatrix.from_matrix(mat)
+
+def plot_gso(log_gso_norms):
+    plt.figure(figsize=(10, 6))
+    for i, vec in enumerate(log_gso_norms):
+        plt.plot(range(len(vec)), vec, label=f"Vector {i+1}")
+    plt.ylabel("log Gram-Schmidt Norms")
+    plt.title("LLL Reduction")
+    plt.legend()
+    plt.show()
+
+def compute_and_plot_gso(M):
+    M_LLL = M.LLL()
+    fpylll_matrix = convert_to_fpylll(M_LLL)
+    M_GSO = GSO.Mat(fpylll_matrix)
+    M_GSO.update_gso()
+    square_gso_norms = M_GSO.r()
+    log_gso_norms = [RR(log(square_gso_norm, 2)/2) for square_gso_norm in square_gso_norms]
+    
+    plot_gso([log_gso_norms])
+    
+    return M_LLL
+
+def calc_resultants(polynomial1, polynomial2):
+    PR = PolynomialRing(ZZ, names='x')
+    x = PR.gen()
+    resultant = polynomial1.resultant(polynomial2)
+    resultant = resultant(x, x)
+
+    roots_y = resultant.roots()
+    if not roots_y:
+        return 0, 0
+    
+    solution_y = roots_y[0][0]
+    intermediate_polynomial = polynomial1(x, solution_y)
+    roots_x = intermediate_polynomial.roots()
+    if not roots_x:
+        return 0, 0
+    
+    solution_x = roots_x[0][0]
+
+    return solution_x, solution_y
+
+def coppersmith_bivariate(polynomial, modulus, m_param, t_param, X_bound, Y_bound):
+    PR = PolynomialRing(ZZ, names=('u', 'x', 'y'))
+    u, x, y = PR.gens()
+    quotient_ring = PR.quotient(x * y + 1 - u)
+    lifted_polynomial = quotient_ring(polynomial).lift()
+    U_bound = X_bound * Y_bound + 1
+
+    polynomial_shifts = polynomial_shifts_calc(m_param, lifted_polynomial, u, x, y, modulus)
+    monomials = find_monomials(polynomial_shifts)
+
     for j in range(1, t_param + 1):
         for k in range(floor(m_param / t_param) * j, m_param + 1):
             y_shift = y**j * lifted_polynomial(u, x, y)**k * modulus**(m_param - k)
@@ -38,13 +86,12 @@ def coppersmith_bivariate(polynomial, modulus, m_param, t_param, X_bound, Y_boun
     lattice_basis = Matrix(ZZ, dimension)
     for i in range(dimension):
         lattice_basis[i, 0] = polynomial_shifts[i](0, 0, 0)
-        for j in range(1, i + 1):
+        for j in range(1, dimension):
             if monomials[j] in polynomial_shifts[i].monomials():
                 lattice_basis[i, j] = polynomial_shifts[i].monomial_coefficient(monomials[j]) * monomials[j](U_bound, X_bound, Y_bound)
 
     # run LLL 
-    lattice_basis = IntegerMatrix.from_matrix(lattice_basis)
-    LLL.reduction(lattice_basis)
+    lattice_basis_reduced = compute_and_plot_gso(lattice_basis)
 
     # create polynomials from the reduced basis
     PR = PolynomialRing(ZZ, names=('x', 'y'))
@@ -53,7 +100,7 @@ def coppersmith_bivariate(polynomial, modulus, m_param, t_param, X_bound, Y_boun
     for i in range(dimension):
         polynomial = 0
         for j in range(dimension):
-            polynomial += monomials[j](x * y + 1, x, y) * lattice_basis[i, j] // monomials[j](U_bound, X_bound, Y_bound)
+            polynomial += monomials[j](x * y + 1, x, y) * lattice_basis_reduced[i, j] // monomials[j](U_bound, X_bound, Y_bound)
         polynomials.append(polynomial)
 
     # find two polynomials with gcd 1
@@ -73,24 +120,7 @@ def coppersmith_bivariate(polynomial, modulus, m_param, t_param, X_bound, Y_boun
         return 0, 0
 
     # calc resultant and find roots
-    PR = PolynomialRing(ZZ, names='x')
-    x = PR.gen()
-    resultant = polynomial1.resultant(polynomial2)
-    resultant = resultant(x, x)
-
-    roots_y = resultant.roots()
-    if not roots_y:
-        return 0, 0
-    
-    solution_y = roots_y[0][0]
-    intermediate_polynomial = polynomial1(x, solution_y)
-    roots_x = intermediate_polynomial.roots()
-    if not roots_x:
-        return 0, 0
-    
-    solution_x = roots_x[0][0]
-
-    return solution_x, solution_y
+    return calc_resultants(polynomial1, polynomial2)
 
 def main():
     # Generate RSA parameters
