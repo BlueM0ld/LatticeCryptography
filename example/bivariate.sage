@@ -70,7 +70,7 @@ def generate_rsa_instance(bits=512, e=3):
 # Example RSA instance
 bits = 256
 e = 3
-eps = 1/20
+eps = 1/20 #  (eps>0): eps is a frequently used mathematical symbol to denote an arbitrary small but still positive and non zero quantity - EP
 k = 3
 
 log_eps = math.log(eps)
