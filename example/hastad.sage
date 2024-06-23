@@ -1,5 +1,39 @@
 from sage.all import *
 from gmpy2 import iroot
+import matplotlib.pyplot as plt
+from fpylll import GSO, IntegerMatrix
+
+def plot_gso(log_gso_norms):
+    plt.figure(figsize=(10, 6))
+    for i, vec in enumerate(log_gso_norms):
+        plt.plot(range(len(vec)), vec, label=f"Vector {i+1}")
+    plt.ylabel("log Gram-Schmidt Norms")
+    plt.title("LLL Reduction")
+    plt.legend()
+    plt.show()
+
+def compute_and_plot_gso(M):
+    # Perform LLL reduction on mat to obtain the reduced basis reducedL
+    reducedL = M.LLL()
+    print("Matrix M1 generated:")
+    print(M.str(rep_mapping=lambda x : str(x.n(digits=3))))
+    print("COL:", M.ncols())
+    print("ROWS:", M.nrows())
+    print("DIMENSIONS:", M.dimensions())
+
+    fpylll_matrix = convert_to_fpylll(reducedL)
+    M = GSO.Mat(fpylll_matrix)
+    M.update_gso()
+    square_gso_norms = M.r()
+    log_gso_norms = [RR(log(square_gso_norm, 2)/2) for square_gso_norm in square_gso_norms]
+    
+    # Plot GSO norms
+    plot_gso([log_gso_norms])
+    
+    return reducedL
+
+def convert_to_fpylll(mat):
+    return IntegerMatrix.from_matrix(mat)
 
 def generate_rsa_instance(bits=150, e=3):
     while True:
@@ -79,16 +113,84 @@ def hastads_attack_lattice(ciphertexts, moduli, e):
     g = sum(gi)
     g = g.monic()
 
-    roots = g.small_roots()
+    #roots = g.small_roots()
+    #Issue with tracking so used  
+    roots = adapted_small_roots(g)
 
     if roots:
         return roots[0]
     else:
         raise ValueError("Failed to find roots using Coppersmith's method")
 
+def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
+    r"""
+    --- adapted from sage library!
+
+    REFERENCES:
+
+    Don Coppersmith. *Finding a small root of a univariate modular equation.*
+    In Advances in Cryptology, EuroCrypt 1996, volume 1070 of Lecture
+    Notes in Computer Science, p. 155--165. Springer, 1996.
+    http://cr.yp.to/bib/2001/coppersmith.pdf
+
+    Alexander May. *New RSA Vulnerabilities Using Lattice Reduction Methods.*
+    PhD thesis, University of Paderborn, 2003.
+    http://www.cs.uni-paderborn.de/uploads/tx_sibibtex/bp.pdf
+    """
+
+    N = self.parent().characteristic()
+
+    if not self.is_monic():
+        raise ArithmeticError("Polynomial must be monic.")
+
+    beta = RR(beta)
+    if beta <= 0.0 or beta > 1.0:
+        raise ValueError("0.0 < beta <= 1.0 not satisfied.")
+
+    f = self.change_ring(ZZ)
+
+    P,(x,) = f.parent().objgens()
+
+    delta = f.degree()
+
+    if epsilon is None:
+        epsilon = beta/8
+    #verbose("epsilon = %f"%epsilon, level=2)
+
+    m = max(beta**2/(delta * epsilon), 7*beta/delta).ceil()
+    #verbose("m = %d"%m, level=2)
+
+    t = int( ( delta*m*(1/beta -1) ).floor() )
+    #verbose("t = %d"%t, level=2)
+
+    if X is None:
+        X = (0.5 * N**(beta**2/delta - epsilon)).ceil()
+    #verbose("X = %s"%X, level=2)
+
+    # we could do this much faster, but this is a cheap step
+    # compared to LLL
+    g  = [x**j * N**(m-i) * f**i for i in range(m) for j in range(delta) ]
+    g.extend([x**i * f**m for i in range(t)]) # h
+
+    B = Matrix(ZZ, len(g), delta*m + max(delta,t) )
+    for i in range(B.nrows()):
+        for j in range( g[i].degree()+1 ):
+            B[i,j] = g[i][j]*X**j
+
+    #B =  B.LLL(**kwds)
+    B = compute_and_plot_gso(B)
+
+    f = sum([ZZ(B[0,i]//X**i)*x**i for i in range(B.ncols())])
+    R = f.roots()
+
+    ZmodN = self.base_ring()
+    roots = set([ZmodN(r) for r,m in R if abs(r) <= X])
+    Nbeta = N**beta
+    return [root for root in roots if N.gcd(ZZ(self(root))) >= Nbeta]
+
 if __name__ == "__main__":
     
-    bits = 250
+    bits = 512
     e = 3
 
     rsa_instances = [generate_rsa_instance(bits, e) for _ in range(e)]
