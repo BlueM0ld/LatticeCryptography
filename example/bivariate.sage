@@ -32,9 +32,16 @@ def generate_matrix_M1(k, p, X, Y, x, y):
                 col = beta(i, j)
                 M1[row, col] = coeff
 
-    
-    
     return M1
+
+def generate_matrix_M2(M):
+    M2 = M.rref()  # Reduced Row Echelon Form
+    return M2
+
+def generate_matrix_M3(M2, k):
+    num_rows = 2 * k + 1
+    M3 = M2[:num_rows, :]  # top (2k + 1) rows is the sublattice of M2 which is M3 as per paper?
+    return M3
 
 def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     print('Bivariate')
@@ -51,15 +58,27 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     X = 2^(high_bits_length)
     Y = 2^(high_bits_length)
     
-    M = generate_matrix_M1(k, f1, X, Y, x, y)
-    
+    M1= generate_matrix_M1(k, f1, X, Y, x, y)
+    M2 = generate_matrix_M2(M1)
+    M3 = generate_matrix_M3(M2, k)
     # confirm matrix
     print("Matrix M1 generated:")
-    print(M.str(rep_mapping=lambda x : str(x.n(digits=3))))
-    print("COL:", M.ncols())
-    print("ROWS:", M.nrows())
-    print("DIMENSIONS:", M.dimensions())
+    print(M1.str(rep_mapping=lambda x : str(x.n(digits=2))))
+    print("COL:", M1.ncols())
+    print("ROWS:", M1.nrows())
+    print("DIMENSIONS:", M1.dimensions())
+    
+    print("Transformed M1 -> M2 (Reduced Row Echelon Form):")
+    print(M2.str(rep_mapping=lambda x : str(x.n(digits=2))))
+    print("COL:", M2.ncols())
+    print("ROWS:", M2.nrows())
+    print("DIMENSIONS:", M2.dimensions())
 
+    print("Matrix M3 (Top 2k + 1 rows of M2):")
+    print(M3.str(rep_mapping=lambda x : str(x.n(digits=2))))
+    print("COL:", M3.ncols())
+    print("ROWS:", M3.nrows())
+    print("DIMENSIONS:", M3.dimensions())
 
 def generate_rsa_instance(bits=512, e=3):
     p = random_prime(2 ** (bits // 2))
