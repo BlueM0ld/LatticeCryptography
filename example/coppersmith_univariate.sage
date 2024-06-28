@@ -1,32 +1,7 @@
 from sage.all import Integer, log, matrix, random_prime, RR, ZZ, PolynomialRing
 import matplotlib.pyplot as plt
 from fpylll import GSO, IntegerMatrix
-
-def plot_gso(log_gso_norms):
-    plt.figure(figsize=(10, 6))
-    for i, vec in enumerate(log_gso_norms):
-        plt.plot(range(len(vec)), vec, label=f"Vector {i+1}")
-    plt.ylabel("log Gram-Schmidt Norms")
-    plt.title("LLL Reduction")
-    plt.legend()
-    plt.show()
-
-def compute_and_plot_gso(M):
-    # Perform LLL reduction on mat to obtain the reduced basis reducedL
-    reducedL = M.LLL()
-    fpylll_matrix = convert_to_fpylll(reducedL)
-    M = GSO.Mat(fpylll_matrix)
-    M.update_gso()
-    square_gso_norms = M.r()
-    log_gso_norms = [RR(log(square_gso_norm, 2)/2) for square_gso_norm in square_gso_norms]
-    
-    # Plot GSO norms
-    plot_gso([log_gso_norms])
-    
-    return reducedL
-
-def convert_to_fpylll(mat):
-    return IntegerMatrix.from_matrix(mat)
+from graph_plotting import compute_and_plot_gso, convert_to_fpylll 
 
 def coppersmith_univariate(N, c, known_prefix, unknown_length, e=3):
     # Convert known part to integer
@@ -44,7 +19,7 @@ def coppersmith_univariate(N, c, known_prefix, unknown_length, e=3):
     ])
 
     # Compute and plot GSO norms, and get the reduced basis
-    B = compute_and_plot_gso(M)
+    B = compute_and_plot_gso(M, "coppersmith_univariate")
     
     # Define the polynomial ring and variable x
     PolynomialRingZZ = PolynomialRing(ZZ, 'x')
