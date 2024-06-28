@@ -1,6 +1,5 @@
 from sage.all import *
 import matplotlib.pyplot as plt
-import numpy as np
 from fpylll import IntegerMatrix, GSO
 
 
@@ -22,10 +21,8 @@ def compute_and_plot_gso(M, output_file="gso_plot"):
     print("GSO norms", M_gso)
     M_gso.update_gso()
     square_gso_norms = M_gso.r()
-    log_gso_norms = [float(np.log2(square_gso_norm)/2)
+    log_gso_norms = [RR(log(square_gso_norm, 2)/2)
                      for square_gso_norm in square_gso_norms]
-
-    np.save("res/log_gso_norms.npy", log_gso_norms)
 
     plot_gso([log_gso_norms], "res/"+output_file+".png")
 

@@ -86,7 +86,7 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     num_rows = (k + 1)^2
     W = diagonal_matrix([X^g * Y^h for g in range(k + 1) for h in range(k + 1)])
     
-    WM1 = W * M
+    WM1 = W * M1
     #print("Matrix W * M1:")
     #print(WM1.str(rep_mapping=lambda x : str(x.n(digits=2))))
     
@@ -94,7 +94,7 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     print("Matrix L (Left-hand (2k + 1) x (2k + 1) submatrix of M3):")
     print(L.str(rep_mapping=lambda x : str(x.n(digits=2))))
     
-    LLL_reduction = compute_and_plot_gso(M, "bivariate")
+    LLL_reduction = compute_and_plot_gso(M1, "bivariate")
 
     # LLL_reduction = L.LLL()
     print("LLL-reduced basis of matrix L:")
