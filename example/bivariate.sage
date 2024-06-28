@@ -1,4 +1,6 @@
 from sage.all import *
+from fpylll import IntegerMatrix, LLL, GSO
+from graph_plotting import compute_and_plot_gso, convert_to_fpylll 
 
 def generate_matrix_M1(k, p, X, Y, x, y):
     # gamma function
@@ -12,10 +14,10 @@ def generate_matrix_M1(k, p, X, Y, x, y):
     # matrix dimensions
     num_rows = (k + 1)^2
     num_cols = (k + 1)^2 + k^2
-    
+
     # set matrix M1 with zeros
-    M1 = Matrix(QQ, num_rows, num_cols)
-    
+    M1 = Matrix(ZZ, num_rows, num_cols)
+
     # left-hand diagonal block
     for g in range(k + 1):
         for h in range(k + 1):
@@ -80,6 +82,42 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     print("ROWS:", M3.nrows())
     print("DIMENSIONS:", M3.dimensions())
 
+
+    num_rows = (k + 1)^2
+    W = diagonal_matrix([X^g * Y^h for g in range(k + 1) for h in range(k + 1)])
+    
+    WM1 = W * M
+    #print("Matrix W * M1:")
+    #print(WM1.str(rep_mapping=lambda x : str(x.n(digits=2))))
+    
+    L = M3[:, :2 * k + 1]
+    print("Matrix L (Left-hand (2k + 1) x (2k + 1) submatrix of M3):")
+    print(L.str(rep_mapping=lambda x : str(x.n(digits=2))))
+    
+    LLL_reduction = compute_and_plot_gso(M, "bivariate")
+
+    # LLL_reduction = L.LLL()
+    print("LLL-reduced basis of matrix L:")
+    print(LLL_reduction.str(rep_mapping=lambda x : str(x.n(digits=2))))
+    
+    short_vector = LLL_reduction[0]
+    print("Short vector in the lattice:")
+    print(short_vector)
+    
+    u = sum(coeff * x^i * y^j for coeff, (i, j) in zip(short_vector, [(i, j) for i in range(k+1) for j in range(k+1)]))
+    print("Polynomial u(z0, y0) = 0:")
+    print(u)
+    
+    # Ensure both u and f1 are in the same ring
+    R = PolynomialRing(ZZ, 'x, y')
+    x, y = R.gens()
+    u = R(u)
+    f1 = R(f1)
+    
+    #TODO: need to implement resultants
+
+    return None
+
 def generate_rsa_instance(bits=512, e=3):
     p = random_prime(2 ** (bits // 2))
     q = random_prime(2 ** (bits // 2))
@@ -101,3 +139,4 @@ P_high_bits = p >> (p.nbits() - high_bits_length)
 Q_high_bits = q >> (q.nbits() - high_bits_length)
 
 result = coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length)
+print("Result:", result)

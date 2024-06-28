@@ -2,38 +2,8 @@ from sage.all import *
 from gmpy2 import iroot
 import matplotlib.pyplot as plt
 from fpylll import GSO, IntegerMatrix
+from graph_plotting import compute_and_plot_gso, convert_to_fpylll 
 
-def plot_gso(log_gso_norms):
-    plt.figure(figsize=(10, 6))
-    for i, vec in enumerate(log_gso_norms):
-        plt.plot(range(len(vec)), vec, label=f"Vector {i+1}")
-    plt.ylabel("log Gram-Schmidt Norms")
-    plt.title("LLL Reduction")
-    plt.legend()
-    plt.show()
-
-def compute_and_plot_gso(M):
-    # Perform LLL reduction on mat to obtain the reduced basis reducedL
-    reducedL = M.LLL()
-    print("Matrix M1 generated:")
-    print(M.str(rep_mapping=lambda x : str(x.n(digits=3))))
-    print("COL:", M.ncols())
-    print("ROWS:", M.nrows())
-    print("DIMENSIONS:", M.dimensions())
-
-    fpylll_matrix = convert_to_fpylll(reducedL)
-    M = GSO.Mat(fpylll_matrix)
-    M.update_gso()
-    square_gso_norms = M.r()
-    log_gso_norms = [RR(log(square_gso_norm, 2)/2) for square_gso_norm in square_gso_norms]
-    
-    # Plot GSO norms
-    plot_gso([log_gso_norms])
-    
-    return reducedL
-
-def convert_to_fpylll(mat):
-    return IntegerMatrix.from_matrix(mat)
 
 def generate_rsa_instance(bits=150, e=3):
     while True:
@@ -178,7 +148,7 @@ def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
             B[i,j] = g[i][j]*X**j
 
     #B =  B.LLL(**kwds)
-    B = compute_and_plot_gso(B)
+    B = compute_and_plot_gso(B, "hastad")
 
     f = sum([ZZ(B[0,i]//X**i)*x**i for i in range(B.ncols())])
     R = f.roots()
