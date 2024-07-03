@@ -108,16 +108,21 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     print("Polynomial u(z0, y0) = 0:")
     print(u)
     
-    # Ensure both u and pxy are in the same ring
+    # both 'u' and 'pxy' are in the same ring
+    #https://ask.sagemath.org/question/57421/resultant-of-symbolic-expression/
     R = PolynomialRing(ZZ, 'x, y')
     x, y = R.gens()
     u = R(u)
-    # note to re
+    
     pxy = R(pxy)
     
     # Compute the resultant
-    resultant_y = pxy.resultant(u, y)
+    #https://ask.sagemath.org/question/7944/problems-with-computing-discriminants-and-resultants/
+    resultant_y = u.resultant(pxy)
     
+    print("P(X,Y)", pxy)
+    print("U(X,Y)",u)
+    print("RESULTANT",resultant_y)
     #TODO: Find roots of the resultant polynomial roots method in sage in for univariate not bivariate hmm
     return None
 
