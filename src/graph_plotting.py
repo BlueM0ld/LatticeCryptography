@@ -1,12 +1,14 @@
 from sage.all import *
 import matplotlib.pyplot as plt
 from fpylll import IntegerMatrix, GSO
+import os
+import uuid
 
 
-def plot_gso(original_log_gso_norms, reduced_log_gso_norms, output_file="gso_plot.png"):
+def plot_gso(original_log_gso_norms, reduced_log_gso_norms, output_file):
     plt.figure(figsize=(14, 6))
 
-    # subplot 1 - M Orginal GSO norms
+    # subplot 1 - Original GSO norms
     plt.subplot(1, 2, 1)
     for i, vec in enumerate(original_log_gso_norms):
         plt.plot(range(len(vec)), vec, label=f"Original Vector {i+1}")
@@ -24,11 +26,20 @@ def plot_gso(original_log_gso_norms, reduced_log_gso_norms, output_file="gso_plo
     plt.legend()
 
     plt.savefig(output_file)
-    plt.show()
+    # plt.show()
     plt.close()
 
 
-def compute_and_plot_gso(M, output_file="gso_plot"):
+def compute_and_plot_gso(M, folder):
+    # Check for result folder
+    res_dir = os.path.join("result", folder)
+    os.makedirs(res_dir, exist_ok=True)
+
+    # Generate unique file name using UUID
+    # TODO: need to update it to matcht expermiments rather than uuid
+    unique_id = uuid.uuid4()
+    output_file = os.path.join(res_dir, f"gso_plot_{unique_id}.png")
+
     fpylll_matrix = convert_to_fpylll(M)
     print("fpylll matrix", fpylll_matrix)
     M_gso = GSO.Mat(fpylll_matrix)
@@ -49,8 +60,7 @@ def compute_and_plot_gso(M, output_file="gso_plot"):
     reduced_log_gso_norms = [RR(log(red_square_gso_norm, 2)/2)
                              for red_square_gso_norm in red_square_gso_norms]
 
-    plot_gso([original_log_gso_norms], [reduced_log_gso_norms],
-             "../res/" + output_file + ".png")
+    plot_gso([original_log_gso_norms], [reduced_log_gso_norms], output_file)
 
     print("Reduced Matrix generated:")
     print(reducedM.str(rep_mapping=lambda x: str(x.n(digits=3))))
@@ -63,6 +73,7 @@ def compute_and_plot_gso(M, output_file="gso_plot"):
 
 def convert_to_fpylll(mat):
     # There's an issue with infinite values - this is arbitary as can't find a limit!
+    # TODO: still running into issue need to think what to do here
     max_val = 10**20
     min_val = -10**20
     safe_mat = mat.apply_map(lambda x: min(max_val, max(min_val, x)) if x not in [

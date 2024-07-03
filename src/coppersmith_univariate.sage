@@ -1,32 +1,7 @@
 from sage.all import *
 import matplotlib.pyplot as plt
 from fpylll import GSO, IntegerMatrix
-
-# Graph setup
-def plot_gso(log_gso_norms):
-    plt.figure(figsize=(10, 6))
-    for i, vec in enumerate(log_gso_norms):
-        plt.plot(range(len(vec)), vec, label=f"Vector {i+1}")
-    plt.ylabel("log Gram-Schmidt Norms")
-    plt.title("LLL Reduction")
-    plt.legend()
-    plt.show()
-
-def compute_and_plot_gso(M):
-    reducedL = M.LLL()
-    fpylll_matrix = convert_to_fpylll(reducedL)
-    M = GSO.Mat(fpylll_matrix)
-    M.update_gso()
-    square_gso_norms = M.r()
-    log_gso_norms = [RR(log(square_gso_norm, 2)/2) for square_gso_norm in square_gso_norms]
-    
-    plot_gso([log_gso_norms])
-    
-    return reducedL
-
-# convert a Sage matrix to fpylll matrix
-def convert_to_fpylll(mat):
-    return IntegerMatrix.from_matrix(mat)
+from graph_plotting import compute_and_plot_gso
 
 def normalise_polynomial(polynomial):
     polynomial /= polynomial.coefficients().pop(0)
@@ -77,7 +52,7 @@ def rescale_and_reduce_matrix(lattice_basis_mtrx, monomials, bounds):
         lattice_basis_mtrx.rescale_col(i, factor)
     
     lattice_basis_mtrx = lattice_basis_mtrx.dense_matrix()
-    lattice_basis_mtrx = compute_and_plot_gso(lattice_basis_mtrx)
+    lattice_basis_mtrx = compute_and_plot_gso(lattice_basis_mtrx, "coppersmith_univariate")
     lattice_basis_mtrx = lattice_basis_mtrx.change_ring(QQ)
     
     for i, factor in enumerate(factors):
@@ -122,18 +97,18 @@ def small_roots(polynomial, bounds, m=1, d=None):
     
     return extract_roots(lattice_basis_mtrx, monomials, polynomial, R)
 
-def coppersmith_univariate(N, c, known_suffix, unknown_length, e):
-    known_suffix_int = Integer(known_suffix, base=35)
+def coppersmith_univariate(N, c, known_prefix, unknown_length, e):
+    known_prefix_int = Integer(known_prefix, base=35)
     X = Integer(35) ** unknown_length
 
     P.<x> = PolynomialRing(Zmod(N), 1)
-    polynomial = (x * X + known_suffix_int) ^ e - c
+    polynomial = (known_prefix_int + x) ^ e - c
 
-    # Call small roots functions
+    #call small roots functions
     roots = small_roots(polynomial, (X,))
     if roots:
         recovered_root = roots[0][0]
-        recovered_message = recovered_root * X + known_suffix_int
+        recovered_message = known_prefix_int + recovered_root
         recovered_message_str = Integer(recovered_message).str(base=35)
         print("Recovered message:", recovered_message_str)
         return recovered_message
