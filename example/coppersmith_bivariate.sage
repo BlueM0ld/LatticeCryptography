@@ -116,6 +116,10 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     
     #TODO: need to implement resultants
 
+    # Compute the resultant
+    resultant_poly = f1.resultant(u, y)
+    
+    #TODO: Find roots of the resultant polynomial roots method in sage in for univariate not bivariate hmm
     return None
 
 def generate_rsa_instance(bits=512, e=3):
