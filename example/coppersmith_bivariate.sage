@@ -115,7 +115,7 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     f1 = R(f1)
     
     # Compute the resultant
-    resultant_poly = f1.resultant(u, y)
+    resultant_y = f1.resultant(u, y)
     
     #TODO: Find roots of the resultant polynomial roots method in sage in for univariate not bivariate hmm
     return None
@@ -127,7 +127,7 @@ def generate_rsa_instance(bits=512, e=3):
     return N, e, p, q
 
 # Example RSA instance
-bits = 256
+bits = 150
 e = 3
 eps = 1/20 #  (eps>0): eps is a frequently used mathematical symbol to denote an arbitrary small but still positive and non zero quantity - EP
 k = 3
