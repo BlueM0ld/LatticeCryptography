@@ -114,8 +114,6 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     u = R(u)
     f1 = R(f1)
     
-    #TODO: need to implement resultants
-
     # Compute the resultant
     resultant_poly = f1.resultant(u, y)
     
