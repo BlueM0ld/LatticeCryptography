@@ -50,9 +50,9 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     
     P.<x, y> = PolynomialRing(ZZ)
     
-    f1 = (P_high_bits + x) * (Q_high_bits + y) - N
+    pxy = (P_high_bits + x) * (Q_high_bits + y) - N
     
-    print("Finding roots of f1(x, y) = (P_high_bits + x) * (Q_high_bits + y) - N")
+    print("Finding roots of P(x, y) = (P_high_bits + x) * (Q_high_bits + y) - N")
     
     k = 3  # As per paper?
     
@@ -60,7 +60,7 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     X = 2^(high_bits_length)
     Y = 2^(high_bits_length)
     
-    M1= generate_matrix_M1(k, f1, X, Y, x, y)
+    M1= generate_matrix_M1(k, pxy, X, Y, x, y)
     M2 = generate_matrix_M2(M1)
     M3 = generate_matrix_M3(M2, k)
     # confirm matrix
@@ -108,14 +108,15 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     print("Polynomial u(z0, y0) = 0:")
     print(u)
     
-    # Ensure both u and f1 are in the same ring
+    # Ensure both u and pxy are in the same ring
     R = PolynomialRing(ZZ, 'x, y')
     x, y = R.gens()
     u = R(u)
-    f1 = R(f1)
+    # note to re
+    pxy = R(pxy)
     
     # Compute the resultant
-    resultant_y = f1.resultant(u, y)
+    resultant_y = pxy.resultant(u, y)
     
     #TODO: Find roots of the resultant polynomial roots method in sage in for univariate not bivariate hmm
     return None
