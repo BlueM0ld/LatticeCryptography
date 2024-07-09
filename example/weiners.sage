@@ -1,14 +1,12 @@
 def wiener_attack(e, N):
     # Calculate the continued fraction expansion of e/N
-    # Refer to Section 2: Continued Fraction Method (Page 2)
     cf = continued_fraction(e / N)
     
-    # Generate the list of convergents from the continued fraction
-    # Refer to Section 2: Continued Fraction Method (Page 2)
     list_of_convergents = cf.convergents()
+    for convergent in list_of_convergents:
+        print(convergent)
     
     # Step 3: Check each convergent to see if it leads to the secret exponent d
-    # Refer to Section 3: Cryptanalysis (Page 2-3)
     for convergent in list_of_convergents:
         k = convergent.numerator()
         d = convergent.denominator()
@@ -20,31 +18,40 @@ def wiener_attack(e, N):
             continue
         
         # Compute phi(N) - it must be whole number if not move to next convergent 
-        phiN = (e * d - 1) // k
-        if phiN.is_integer() == False:
+        if (e * d - 1) % k != 0:
             continue
         
-        # if ((p-q)/2)^2 is a perfect square then guess of K and dg is correct
-        # p^2 + phi(N) - N - 1)p + N = 0
-
+        phiN = (e * d - 1) // k
+        
+        # Check if ed ≡ 1 (mod k)
+        if Mod(e * d, k) != 1:
+            continue
+        
+        print(f"Calculated phi(N): {phiN}")
+        print(f"with numerator k: {k}")
+        print(f"with denominator d: {d}")
 
         # Solve the poly equation to find possible p and q
-
         p = var('p')
-        poly = p^2 + (phiN - N - 1)*p + N
-        #Solving Equations Exactly - https://doc.sagemath.org/html/en/tutorial/tour_algebra.html
-        roots = solve(poly, p)
-
+        poly = p^2 - p*(N - phi_N +1)+N # fixed
+        roots = poly.roots(ring=ZZ)  # roots need to be integers
+        
+        print(f"convergent k={k}, d={d}")
         print("ROOTS ",roots)
+
+        
         if len(roots) == 2:
-            p = roots[0].rhs()
-            q = roots[1].rhs()
+            p_recovered = roots[0][0]
+            q_recovered = roots[1][0]
             
-            if p * q == N:
-                return d, p, q
+            print(f"Recovered p = {p_recovered}")
+            print(f"Recovered q = {q_recovered}")
+
+            if p_recovered * q_recovered == N:
+                print("Success! found d,p and q.")
+                return d, p_recovered, q_recovered
+    
     return None, None, None
-
-
 
 def generate_rsa_instance(bits=150, e=3):
     while True:
@@ -55,38 +62,39 @@ def generate_rsa_instance(bits=150, e=3):
         if gcd(phi_N, e) == 1:
             break
     
-    d = inverse_mod(e, phi_N)
+    return N, e, p, q,phi_N
 
-    return N, e,p,q,d
-# Example usage with e and N
-# Wiener's attack - recovers d when d is small
+# Wiener's attack - recovers d when d is small 
 
-#e = 3
-#bits = 10
+#p = 113 
+#q = 79
+#N = p * q
+#phi_N = (p - 1) * (q - 1)
+#e = 2621
+#d = inverse_mod(e, phi_N)
+#d = 3 # didnt get 5 got 3
 
-#N,e, p,q, d = generate_rsa_instance(bits,e)
-#print(f"Generated RSA instance:")
-#print(f"N: {N}")
-#print(f"e: {e}")
-#print(f"p: {p}")
-#print(f"q: {q}")
-#print(f"d: {d}")
+N, e, p,q ,phi_N = generate_rsa_instance(10, 2621)
 
 
-# Set as per the example in the paper
+print(f"Generated RSA instance:")
+print(f"N: {N}")
+print(f"e: {e}")
+print(f"p: {p}")
+print(f"q: {q}")
+print(f"Phi N: {phi_N}")
 
-e = 2621
-N = 8927
-d = 5 
+d =3
 # Check the bounds for d
-#d_bound = 1/3 * N^(1/4)
-#assert d < d_bound, "d must be less than the bound 1/3 * N^(1/4)"
+d_bound = int(1/2 * N^(1/4)) # There is an improved bounds as per W.Susilo et al.
+assert d < d_bound, f"d must be less than the bound 1/2 * N^(1/4) ---> d={d} < {d_bound}"
 
 d_recovered, p_recovered, q_recovered = wiener_attack(e, N)
 
-if d:
-    #assert d == d_recovered, "not as original"
+if d_recovered:
     print(f"Found secret exponent d: {d_recovered}") # got 3 instead of 5 i wonder y
     print(f"Prime factors p: {p_recovered}, q: {q_recovered}")
+    #assert d == d_recovered, "not as original"
+
 else:
     print("d not found")
