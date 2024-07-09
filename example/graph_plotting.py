@@ -35,9 +35,12 @@ def compute_and_plot_gso(M, output_file="gso_plot"):
     print("GSO norms", M_gso)
     M_gso.update_gso()
     square_gso_norms = M_gso.r()
-    original_log_gso_norms = [RR(log(square_gso_norm, 2)/2)
+    original_log_gso_norms = [(log(square_gso_norm, 2)/2)
                               for square_gso_norm in square_gso_norms]
 
+    original_log_gso_norms = [N(norm) for norm in original_log_gso_norms]
+
+    print("Performing LLL reduction...")
     reducedM = M.LLL()
 
     reducedM_fpylll_matrix = convert_to_fpylll(reducedM)
@@ -48,6 +51,7 @@ def compute_and_plot_gso(M, output_file="gso_plot"):
     red_square_gso_norms = reducedM_gso.r()
     reduced_log_gso_norms = [RR(log(red_square_gso_norm, 2)/2)
                              for red_square_gso_norm in red_square_gso_norms]
+    # reduced_log_gso_norms = [N(norm) for norm in reduced_log_gso_norms]
 
     plot_gso([original_log_gso_norms], [reduced_log_gso_norms],
              "res/" + output_file + ".png")
@@ -63,8 +67,9 @@ def compute_and_plot_gso(M, output_file="gso_plot"):
 
 def convert_to_fpylll(mat):
     # There's an issue with infinite values - this is arbitary as can't find a limit!
-    max_val = 10**20
-    min_val = -10**20
-    safe_mat = mat.apply_map(lambda x: min(max_val, max(min_val, x)) if x not in [
-                             float('inf'), float('-inf')] else max_val if x == float('inf') else min_val)
-    return IntegerMatrix.from_matrix(safe_mat)
+    # TODO: still running into issue need to think what to do here
+    # max_val = 10**20
+    # min_val = -10**20
+    # safe_mat = mat.apply_map(lambda x: min(max_val, max(min_val, x)) if x not in [
+    #                        float('inf'), float('-inf')] else max_val if x == float('inf') else min_val)
+    return IntegerMatrix.from_matrix(mat)

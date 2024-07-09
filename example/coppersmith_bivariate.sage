@@ -9,72 +9,146 @@ def generate_matrix_M1(k, p, X, Y, x, y):
     
     # beta function
     def beta(i, j):
-        return (k + 1)^2 + k * i + j
+        return (k + 1)**2 + k * i + j
 
     # matrix dimensions
-    num_rows = (k + 1)^2
-    num_cols = (k + 1)^2 + k^2
-
+    num_rows = (k + 1)**2
+    num_cols = (k + 1)**2 + k**2
+    
     # set matrix M1 with zeros
-    M1 = Matrix(ZZ, num_rows, num_cols)
+    M1 = Matrix(QQ, num_rows, num_cols)
 
     # left-hand diagonal block
     for g in range(k + 1):
         for h in range(k + 1):
             index = gamma(g, h)
-            M1[index, index] = X^(-g) * Y^(-h)
+            M1[index, index] = (X**(-g) * Y**(-h))  # Ensure fractions are correctly handled
     
     # right-hand block
     for i in range(k):
         for j in range(k):
-            q_ij = (x^i * y^j * p)
+            q_ij = (x**i * y**j * p)
             for monom, coeff in q_ij.dict().items():
                 g, h = monom
                 row = gamma(g, h)
                 col = beta(i, j)
                 M1[row, col] = coeff
 
+    # Assertion to check the size of M1
+    assert M1.nrows() == (k + 1)**2, "Number of rows in M1 is incorrect"
+    assert M1.ncols() == (k + 1)**2 + k**2, "Number of columns in M1 is incorrect"
+
     return M1
 
-def generate_matrix_M2(M):
-    M2 = M.rref()  # Reduced Row Echelon Form
-    return M2
+def generate_matrix_M2(M, K):
+    # Matrix dimensions
+    n = M.nrows()
+    m = M.ncols()
+    
+    submatrix_cols = K**2
+
+    # Scan the matrix from the bottom right to the top
+    for j in reversed(range(m - submatrix_cols, m)):
+        non_zero_positions = M.nonzero_positions_in_column(j)
+        for c in reversed(range(len(non_zero_positions))):
+            row_index = non_zero_positions[c]
+            if -M[row_index, j] == -1:
+                continue
+            M.add_multiple_of_row(row_index, non_zero_positions[-1], -M[row_index, j])
+
+    # Swap rows if necessary to make sure the leading entry is 1
+    tempN = n - 1
+    for i in reversed(range(m - submatrix_cols, m)):
+        if M[tempN, i] != 1:
+            non_zero_positions = M.nonzero_positions_in_column(i)
+            if non_zero_positions:
+                M.swap_rows(tempN, non_zero_positions[0])
+
+        tempN -= 1
+
+    # Clear fractions in the top 2K + 1 sub-rows
+    def lcm(a, b):
+        return abs(a * b) // gcd(a, b)
+
+    def find_lcm_of_denominators(row):
+        denominators = [frac.denominator() for frac in row if frac != 0]
+        if not denominators:
+            return 1
+        row_lcm = denominators[0]
+        for denom in denominators[1:]:
+            row_lcm = lcm(row_lcm, denom)
+        return row_lcm
+
+    for row_index in range(2 * K + 1):
+        row = M.row(row_index)
+        row_lcm = find_lcm_of_denominators(row)
+        if row_lcm != 1:
+            M[row_index] = [elem * row_lcm for elem in row]
+
+    return M
 
 def generate_matrix_M3(M2, k):
     num_rows = 2 * k + 1
     M3 = M2[:num_rows, :]  # top (2k + 1) rows is the sublattice of M2 which is M3 as per paper?
+
+    # Assertion to check the size of M3
+    assert M3.nrows() == 2 * k + 1, "Number of rows in M3 is incorrect"
+    assert M3.ncols() == M2.ncols(), "Number of columns in M3 is incorrect"
+
     return M3
 
-def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
+##Used for bounds unsure if i need this FUNCTION NOT USED
+def construct_diagonal_matrix_W(k, X, Y):
+    dimension = (k + 1)^2
+    W = matrix(QQ, dimension, dimension)
+    
+    for g in range(k + 1):
+        for h in range(k + 1):
+            index = (k + 1) * g + h
+            W[index, index] = X^g * Y^h
+
+    # Assertion to check diagonal elements
+    for i in range(dimension):
+        assert W[i,i] == X^(i // (k + 1)) * Y^(i % (k + 1)), "Diagonal element of W is incorrect"
+
+    return W
+
+def coppersmith_bivariate(N, P_high_bits, Q_high_bits, eps, k):
     print('Bivariate')
     
-    P.<x, y> = PolynomialRing(ZZ)
+    P = PolynomialRing(ZZ, 'x, y')
+    x, y = P.gens()
     
     pxy = (P_high_bits + x) * (Q_high_bits + y) - N
     
     print("Finding roots of P(x, y) = (P_high_bits + x) * (Q_high_bits + y) - N")
-    
-    k = 3  # As per paper?
-    
-    # choose bounds for X and Y 
-    X = 2^(high_bits_length)
-    Y = 2^(high_bits_length)
-    
-    M1= generate_matrix_M1(k, pxy, X, Y, x, y)
-    M2 = generate_matrix_M2(M1)
-    M3 = generate_matrix_M3(M2, k)
-    # confirm matrix
+    print(pxy)
+        
+    X = (P_high_bits / int( N**(1/4)+eps))
+    Y = (Q_high_bits / int( N**(1/4)+eps))
+
+    # Check if method will work
+    D = max((P_high_bits * Q_high_bits - N), Q_high_bits - Y, P_high_bits * Y, X * Y)
+    check = int((X*Y)**(3/2)) < D
+
+    print("This is a check bound to verify if the method will work| will this method work: ", check) 
+
+
+    M1 = generate_matrix_M1(k, pxy, X, Y, x, y) 
     print("Matrix M1 generated:")
     print(M1.str(rep_mapping=lambda x : str(x.n(digits=2))))
     print("COL:", M1.ncols())
     print("ROWS:", M1.nrows())
     print("DIMENSIONS:", M1.dimensions())
-    
-    print("Transformed M1 -> M2 (Reduced Row Echelon Form):")
+
+    M2 = generate_matrix_M2(M1, k)
+    print("M2: Transformed M1 to M2 by elementary row operations")
     print(M2.str(rep_mapping=lambda x : str(x.n(digits=2))))
     print("COL:", M2.ncols())
     print("ROWS:", M2.nrows())
     print("DIMENSIONS:", M2.dimensions())
+
+    M3 = generate_matrix_M3(M2, k) 
 
     print("Matrix M3 (Top 2k + 1 rows of M2):")
     print(M3.str(rep_mapping=lambda x : str(x.n(digits=2))))
@@ -82,69 +156,72 @@ def coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length):
     print("ROWS:", M3.nrows())
     print("DIMENSIONS:", M3.dimensions())
 
-
-    num_rows = (k + 1)^2
-    W = diagonal_matrix([X^g * Y^h for g in range(k + 1) for h in range(k + 1)])
-    
-    WM1 = W * M1
-    #print("Matrix W * M1:")
-    #print(WM1.str(rep_mapping=lambda x : str(x.n(digits=2))))
-    
-    L = M3[:, :2 * k + 1]
+    L = M3[:2 * k + 1, :2 * k + 1]
     print("Matrix L (Left-hand (2k + 1) x (2k + 1) submatrix of M3):")
     print(L.str(rep_mapping=lambda x : str(x.n(digits=2))))
     
-    LLL_reduction = compute_and_plot_gso(M1, "bivariate")
+    # Assertions to check the size of L
+    # Assertions to check the size of L
+    assert L.nrows() == 2 * k + 1, "Number of rows in L is incorrect"
+    assert L.ncols() == 2 * k + 1, "Number of columns in L is incorrect"
 
-    # LLL_reduction = L.LLL()
-    print("LLL-reduced basis of matrix L:")
-    print(LLL_reduction.str(rep_mapping=lambda x : str(x.n(digits=2))))
-    
-    short_vector = LLL_reduction[0]
-    print("Short vector in the lattice:")
-    print(short_vector)
-    
-    u = sum(coeff * x^i * y^j for coeff, (i, j) in zip(short_vector, [(i, j) for i in range(k+1) for j in range(k+1)]))
-    print("Polynomial u(z0, y0) = 0:")
-    print(u)
-    
-    # both 'u' and 'pxy' are in the same ring
-    #https://ask.sagemath.org/question/57421/resultant-of-symbolic-expression/
-    R = PolynomialRing(ZZ, 'x, y')
-    x, y = R.gens()
-    u = R(u)
-    
-    pxy = R(pxy)
-    
-    # Compute the resultant
-    #https://ask.sagemath.org/question/7944/problems-with-computing-discriminants-and-resultants/
-    resultant_y = u.resultant(pxy)
-    
-    print("P(X,Y)", pxy)
-    print("U(X,Y)",u)
-    print("RESULTANT",resultant_y)
-    #TODO: Find roots of the resultant polynomial roots method in sage in for univariate not bivariate hmm
-    return None
 
-def generate_rsa_instance(bits=512, e=3):
-    p = random_prime(2 ** (bits // 2))
-    q = random_prime(2 ** (bits // 2))
+
+
+    #check that size of determinant is grete that N^k/4
+    #det_L = abs(det(L))
+    #assert det_L > N**(k/4), "|det(L)| is not greater than N^(k/4)"
+
+    
+    #L = L.LLL()
+    L = L.change_ring(ZZ)
+    L = compute_and_plot_gso(L, "coppersmith_bivariate")
+
+
+    roots = []
+    monomials = [(i, j) for i in range(k + 1) for j in range(k + 1)]
+
+    for i in range(L.nrows()):
+        u = (sum(coeff * x**i * y**j for coeff, (i, j) in zip(L[i], monomials)))
+        r = pxy.resultant(u, y)
+        if r.is_constant():
+            print("FOUND CONSTANT")
+            print(r)
+            continue
+        else:
+            print("FOUND SOMEHTING")
+            print(r)
+            root = r.univariate_polynomial().roots()
+            print("ROOTS?")
+            print(root)
+            if root:
+                roots.append(root)
+
+    return roots
+
+def generate_rsa_instance(bits, e):
+    p = random_prime(bits) ## needs to be 2**bits but cant debug well
+    q = random_prime(bits) ## needs to be 2**bits but cant debug well
     N = p * q
     return N, e, p, q
 
-# Example RSA instance
-bits = 150
+bits = 150 
 e = 3
-eps = 1/20 #  (eps>0): eps is a frequently used mathematical symbol to denote an arbitrary small but still positive and non zero quantity - EP
+eps = 1/10
 k = 3
-
-log_eps = math.log(eps)
-
+print("K",k)
 N, e, p, q = generate_rsa_instance(bits, e)
+log_N = log(N,2)
 
-high_bits_length = int((1/4 + log_eps) * bits)  # Number of high bits known
+high_bits_length = int(((1/4 + eps) * log_N)* p.nbits())
+print("high bits length",high_bits_length)
+
 P_high_bits = p >> (p.nbits() - high_bits_length)
 Q_high_bits = q >> (q.nbits() - high_bits_length)
 
-result = coppersmith_bivariate(N, P_high_bits, Q_high_bits, high_bits_length)
+print("HIGH BITS p",P_high_bits)
+print("HIGH BITS q",Q_high_bits)
+
+
+result = coppersmith_bivariate(N, P_high_bits, Q_high_bits, eps, k)
 print("Result:", result)
