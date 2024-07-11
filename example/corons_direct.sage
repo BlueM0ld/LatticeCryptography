@@ -1,3 +1,4 @@
+#Coron, JS. (2007). Finding Small Roots of Bivariate Integer Polynomial Equations: A Direct Approach. In: Menezes, A. (eds) Advances in Cryptology - CRYPTO 2007. CRYPTO 2007. Lecture Notes in Computer Science, vol 4622. Springer, Berlin, Heidelberg. https://doi.org/10.1007/978-3-540-74143-5_21
 def coron_bivariate_direct(N,k):
 
     X = 1
@@ -21,14 +22,14 @@ def coron_bivariate_direct(N,k):
 
     #####generate N
 
-    # Create k^2 polynomials sa,b(x, y)
+    #  k^2 polynomials sa,b(x, y)
     polynomials = []
     for a in range(k):
         for b in range(k):
             sxy = (x**a)*(y**b)*pxy
             polynomials.append(sxy)
 
-    # Fill the matrix M with coefficients of specified monomials
+    # matrix S with coefficients of specified monomials
     for index, poly in enumerate(polynomials):
         row = []
         for i in range(k):
@@ -40,8 +41,9 @@ def coron_bivariate_direct(N,k):
 
     print("Matrix S generated:")
     print(S.str(rep_mapping=lambda x : str(x.n(digits=2))))
-    # Calculate the determinant of the matrix M
-
+    
+    
+    # determinant of the matrix M
     n = det(S)
     
     print("Det(s):", n)
