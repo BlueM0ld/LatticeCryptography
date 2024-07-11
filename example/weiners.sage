@@ -6,7 +6,7 @@ def wiener_attack(e, N):
     for convergent in list_of_convergents:
         print(convergent)
     
-    # Step 3: Check each convergent to see if it leads to the secret exponent d
+    # Check each convergent to see if it leads to the secret exponent d
     for convergent in list_of_convergents:
         k = convergent.numerator()
         d = convergent.denominator()
