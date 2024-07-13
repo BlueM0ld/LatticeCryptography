@@ -118,10 +118,6 @@ def coron_bivariate_direct(N,k):
 
     print("Matrix M generated:")
 
-    M.swap_rows(6,7)
-    M.swap_rows(7,8)
-    M.swap_rows(9,10)
-
     print(M)
     print(M.dimensions())
 
