@@ -2,29 +2,42 @@
 
 from graph_plotting import compute_and_plot_gso, convert_to_fpylll 
 
-def coron_bivariate_direct(N,k):
+def generate_monomial_order(k):
+    #x, y = var('x y ')
+    monomial_order = []
 
-    X = 30
-    Y = 20
-    p = PolynomialRing(ZZ, 'x, y')
-    x, y = p.gens()
+    # Add (0, 0) first
+    monomial_order.append(1)
 
-    pxy = 127*x*y + 1207*x + 1461*y + 21
+    # Add (0, i) and (i, 0) for i from 1 to k
+    for i in range(1, k + 1):
+        monomial_order.append(y**i)
+        monomial_order.append(x**i)
+
+    # Add (m, n) for m and n from 1 to k
+    for m in range(1, k + 1):
+        for n in range(1, k + 1):
+            monomial_order.append(x**m * y**n)
+
+    # Reverse the order as per the requirement
+    monomial_order.reverse()
+
+    return monomial_order
+
+def generate_lattice(k, poly_degree):
+    M_rows = k**2 + (k + poly_degree)**2 # 4 + 9 = 13
+    M_columns = (k+poly_degree)**2 
+    M = Matrix(ZZ, M_rows, M_columns)
+
+    return M
 
 
-    poly_degree = max(pxy.degrees())  # total_degree shouldnt be the sum of the degress but it is bug
-    print("d",poly_degree)
-    i0, j0 = 1, 1  # stub numbers
+def generate_n(k):
 
+    i0 = 1
+    j0 = 1
     S = Matrix(ZZ, k**2, k**2, 0)
-    print("Matrix S",S)
 
-    #sxy = (x**a)*(y**b)
-    #rxy = (x**i * y**i) * det_M
-
-    #####generate N
-
-    #  k^2 polynomials sa,b(x, y)
     polynomials = []
     for a in range(k):
         for b in range(k):
@@ -45,8 +58,7 @@ def coron_bivariate_direct(N,k):
 
     S = S.transpose()
     print("Matrix S generated:")
-    print(S.str(rep_mapping=lambda x : str(x.n(digits=2))))
-    
+    print(S.str(rep_mapping=lambda x : str(x.n(digits=2))))  
     
     # determinant of the matrix M
     n = abs(det(S)) ## n := | det S|
@@ -55,39 +67,80 @@ def coron_bivariate_direct(N,k):
     assert n > 0, "matrix S is NOT invertible"
     assert n == 127**4, "matrix S is NOT invertible"
 
+    return n
+  
 
-    #there are k^2 + (k + δ)^2 such polynomials
-    print("no. of polynomials", k**2+(k + poly_degree)**2)
-    # Linear combinations
-    # https://www.youtube.com/watch?v=YwywC7s17E8
+def find_roots(LRED, monomial_order, k, pxy):
+    roots_x0 = []
 
-    # h(x, y) be a linear combination of the polynomials sa,b(x, y) and ri,j (x, y)
+    for r in range(LRED.nrows()):
+        print("--------------------------------------------------")
+
+        u = sum(coeff * monomial for coeff, monomial in zip(LRED[r], monomial_order[k**2:]))
+        gcd_coeff = gcd(u.coefficients())
+        u = u // gcd_coeff
+
+        print("P(x):", pxy)
+        print("H(x):", u)
+        resultant_pu = pxy.resultant(u, variable=y)
+
+        gcd_coeff = gcd(resultant_pu.coefficients())
+        simplified_poly = resultant_pu // gcd_coeff
+
+        x0 = simplified_poly.univariate_polynomial()
+        print("Q(x):", x0)
+
+        # Find the roots of the simplified polynomial Q(x)
+        roots = x0.roots(ring=ZZ, multiplicities=False)
+        if roots:
+            print("Roots:", roots)
+            roots_x0.extend(roots)
+
+    roots_x0 = list(set(roots_x0))
+    print("x0_roots:", roots_x0)
+
+    sol = []
+    # Extract y for each root of x0
+    for root in roots_x0:
+        p_y = pxy(x=root)
+
+        # Find the roots of p_y
+        roots_y = p_y.univariate_polynomial().roots(ring=ZZ, multiplicities=False)
+        print(f"Roots in y for x = {root}:", roots_y)
+        if roots_y:
+            print(root)
+            print(roots_y[0])
+            sol.append([root, roots_y[0]])
+
+    return sol
 
 
-    M_rows = k**2 + (k + poly_degree)**2 # 4 + 9 = 13
+def coron_d(pxy, X, Y, k):
+
+    poly_degree = max(pxy.degrees())  # total_degree shouldnt be the sum of the degress but it is bug
+    print("degree of polynomial ",poly_degree)
+    i0, j0 = 1, 1  # stub numbers
+
+    n = generate_n(k)
+
+    M_rows = k**2 + (k + poly_degree)**2
     M_columns = (k+poly_degree)**2 
     M = Matrix(ZZ, M_rows, M_columns )
    
-    print("there should be (d + k)^ 2 polynomials", (poly_degree + k)**2)
-
-    #sxy = (x**a)*(y**b)
-    #rxy = (x**i * y**i) * n
+    #TODO: BIGGGG NEED TO ACCOUNT FOR BOUNDS 
 
     Spolynomials = []
     for a in range(k):
         for b in range(k):
-            sxy = (X*x**a)*(Y*y**b)*pxy(X*x,Y*y)
+            #sxy = (X*x**a)*(Y*y**b)*pxy(X*x,Y*y)
+            sxy = (x**a)*(y**b)*pxy(x,y) ### found it issue with bounds!!! need to account in the lattice which i didnt!!!
             Spolynomials.append(sxy)
-            #print("a",a)
-            #print("b",b)
-            #print("sxy",sxy)
     Spolynomials.reverse()
-    #print(Spolynomials)
 
     Rpolynomials = []
     for i in range(k+poly_degree):
         for j in range(k+poly_degree):
-            rxy = (x**i * y**j) * n
+            rxy = (x**i) * (y**j) * n
             Rpolynomials.append(rxy)
 
     print("this", Rpolynomials)
@@ -96,89 +149,66 @@ def coron_bivariate_direct(N,k):
     polySystem = Spolynomials + Rpolynomials
     print(*polySystem, sep = "\n")
 
+    M = generate_lattice(k, poly_degree)
 
-    # Define the order of monomials
-    monomial_order = [x**2*y**2, x**2*y, x*y**2, x*y, x**2, y**2, x, y, 1]
+    monomial_order = generate_monomial_order(k)
+    print(monomial_order)
 
-    # Initialize an empty matrix with zeros
-    # Populate the matrix with coefficients of each polynomial
     for i, poly in enumerate(polySystem):
         terms = poly.monomials()
         coeff = poly.coefficients()
-        print("terms", terms)
-        #for term in terms:
         for j in range(len(terms)):
             monomial = terms[j]
-            print(coeff)
-            #coeff = term[1]
-            ## Find the index of the monomial in monomial_order
             index = monomial_order.index(monomial)
             M[i, index] = coeff[j]
 
-
     print("Matrix M generated:")
+    print(M)  
 
-    print(M)
     print(M.dimensions())
 
     L = M
     L = L.echelon_form() ### As its over the integers echelon form is HNF(hermite normal form)!
 
     print("Matrix L generated:")
-    print(L)
+    print(L)  
     print(L.dimensions())
 
-    L2 = L.submatrix(k ** 2, k ** 2, (k + poly_degree) ** 2 - k ** 2, (k + poly_degree) ** 2 - k ** 2)
+    lastpos = L.nonzero_positions_in_column(L.ncols()-1)[-1] ## for the l2 matrix
 
-    print(L2)
-    print(L2.dimensions())
+    start_row = k ** 2
+    start_col = k ** 2
+    num_rows = (k + poly_degree) ** 2 - k ** 2
+    num_cols = (k + poly_degree) ** 2 - k ** 2
 
-    LRED = L2.LLL()#compute_and_plot_gso(L2, "coron_bivariate") # does LLL
+    # Extract the submatrix
+    L2 = L.submatrix(start_row, start_col, num_rows, num_cols)
+    print("L2--------------------------------------------------")
 
-    print("LRED SHORTEST", LRED)
+    print(L2)  
 
-    roots = []
-    monomials = [(2, 0), (0, 2), (1, 0), (0, 1), (0, 0)]
+    LRED = compute_and_plot_gso(L2, "coron_bivariate")
+
+    print("REDUCED--------------------------------------------------")
+
+    print(LRED.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+
+    res = find_roots(LRED, monomial_order, k, pxy)
+
+    return res
+
+
+
+#Example set in gailbraiths 19.3 bivariate section
+
+P = PolynomialRing(ZZ, 'x, y')
+x, y = P.gens()
     
-    
-    print(monomials)
-    
-    for i in range(5):
-        u = (sum(coeff * x**i * y**j for coeff, (i, j) in zip(LRED[i], monomials)))
-        #print(u)
-        print("--------------------------------------------------")
-        resultant_pu = pxy.resultant( u, variable = y)
-        #print("Resultant Q(x):", resultant_pu)
 
-        gcd_coeff = gcd(resultant_pu.coefficients())
-        simplified_poly = resultant_pu // gcd_coeff
-        print(simplified_poly)
+X = 30
+Y = 20
+pxy = 127*x*y - 1207*x - 1461*y + 21
+ 
+res = coron_d(pxy, X, Y, k=2)
 
-        x0 = simplified_poly.univariate_polynomial().roots(ring=RR, multiplicities=True)
-        #x0 = simplified_poly.groebner_basis()
-        print(x0)
-
-
-    return None
-
-
-def generate_rsa_instance(bits, e):
-    p = random_prime(2**bits) ## needs to be 2**bits but cant debug well
-    q = random_prime(2**bits) ## needs to be 2**bits but cant debug well
-    N = p * q
-    return N, e, p, q
-
-bits = 512 
-e = 3
-k = 2 # assert that it is greater than 0
-
-N, e, p, q = generate_rsa_instance(bits, e)
-print('p =', p)
-print('q =', q)
-
-
-result = coron_bivariate_direct(N,  k)
-print("Result:", result)
-
-#Bounds described in the paper but we will set it to 1
-#XY < W 1/δ
+print(res)
