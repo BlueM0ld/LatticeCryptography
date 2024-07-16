@@ -1,5 +1,20 @@
 from sage.all import *
 
+def generate_monomial_order(m,n):
+    #This is set for m = 3 and t =1 but need to understand the ordering better
+    monomial_order = [1]
+
+    for i in range(1, m + 1):
+        monomial_order.append(x**i)
+        for j in range(1, i + 1):
+            monomial_order.append((x**i) * (y**j))
+
+    for j in range(1, m+n+1):
+        monomial_order.append((x**(j-1)) * (y**j))
+
+    print(monomial_order)
+    return monomial_order
+
 
 def boneh_durfee(pxy,m,t,X,Y):
 
@@ -32,6 +47,26 @@ def boneh_durfee(pxy,m,t,X,Y):
     y_shifts.sort()
 
     #print(y_shifts)
+    
+    #Hard code values 14 by 14 until i figure out how to set dimensions
+    M = Matrix(ZZ, 14, 14 )
+    combine_shifts = x_shifts + y_shifts
+    print(*combine_shifts, sep = "\n")
+    
+    monomial_order = generate_monomial_order(k,t)
+
+    for i, poly in enumerate(combine_shifts):
+        terms = poly.monomials()
+        coeff = poly.coefficients()
+        for j in range(len(terms)):
+            monomial = terms[j]
+            index = monomial_order.index(monomial)
+            M[i, index] = coeff[j]
+
+    M.swap_rows(5,6) # This is a fixed swap but will need to account for the sorting on monomials generally
+    print(M.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+
+
 
 
 #a balanced RSA modulus
