@@ -140,7 +140,7 @@ def coron_d(pxy, X, Y, k):
     Rpolynomials = []
     for i in range(k+poly_degree):
         for j in range(k+poly_degree):
-            rxy = (x**i) * (y**j) * n
+            rxy = ((X*x)**i) * ((Y*y)**j) * n
             Rpolynomials.append(rxy)
 
     print("this", Rpolynomials)
