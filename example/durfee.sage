@@ -5,8 +5,33 @@ def boneh_durfee(pxy,m,t,X,Y):
 
     print("attempt Boneh durfee")
 
+    # define polynomial gxy and hxy 
 
+    
+    PP = PolynomialRing(ZZ, 'x, y')
+    x, y = PP.gens()
 
+    #gxy = x**i * pxy**k * e **(m-k)  # x shifts
+    #hxy = y**i * pxy**k * e **(m-k)  # y shifts
+
+    # x-shifts polynomials 
+    x_shifts = []
+    for k in range(m + 1):
+        for i in range(m - k + 1):
+            gxy = (x**i) * (pxy**k) * (e **(m-k)) 
+            x_shifts.append(gxy)
+    x_shifts.sort()
+
+    #print(x_shifts)
+
+    y_shifts = []
+    for k in range(m + 1):
+        for j in range(1, t+1):
+            hxy = (y**j) * (pxy**k) * (e **(m-k)) 
+            y_shifts.append(hxy)
+    y_shifts.sort()
+
+    #print(y_shifts)
 
 
 #a balanced RSA modulus
