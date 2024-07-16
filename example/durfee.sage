@@ -66,6 +66,46 @@ def boneh_durfee(pxy,m,t,X,Y):
     M.swap_rows(5,6) # This is a fixed swap but will need to account for the sorting on monomials generally
     print(M.str(rep_mapping=lambda x : str(x.n(digits=2))))  
 
+    print(e)
+
+    #leave it here and gotta figure this out ??
+    DetX = e**((m*(m+1)*(m+2))/3) * X**((m*(m+1)*(m+2))/3) * Y**((m*(m+1)*(m+2))/6)
+
+    DetY = e**((t*m*(m+1))/2) * X**((t*m*(m+1))/2) * Y**((t*(m+1)*(m+t+1))/2)
+
+    determinant_M = det(M)
+    print(determinant_M)
+    #assert determinant_M == DetX * DetY, "assertion on L"
+
+    L = M.LLL()
+    print(L.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+
+    # Further steps to extract solution from L
+    # Extracting the polynomials from the reduced basis
+    basis_polynomials = []
+
+    print(monomial_order)
+    for i in range(L.nrows()):
+        poly = (sum(coeff * monom for coeff, monom in zip(L[0], monomial_order)))
+        basis_polynomials.append(poly)
+
+ #   for poly in basis_polynomials:
+ #       print(poly)
+
+    PR.<q> = PolynomialRing(ZZ)
+
+    resultants = []
+    for g1 in basis_polynomials:
+        for g2 in basis_polynomials:
+            resultant = g1.resultant(g2, variable = y)
+            if(resultant.is_constant()):
+                continue
+            else:
+                print(resultant)
+                resultants.append(resultant)
+
+    if not resultant:
+        print("There's no resultants for g1 and g2")
 
 
 
@@ -81,14 +121,17 @@ q= 771181
 # Compute the modulus N
 N = p * q
 
-# Compute Euler's totient function φ(N)
 phi_N = (p - 1) * (q - 1)
 
 # Choose a public exponent e
 d = 7
 # Compute the private exponent d (the modular inverse of e modulo φ(N))
-e= inverse_mod(d, phi_N)
+#e= inverse_mod(d, phi_N)
 
+#common case
+alpha = 1
+
+e = N**alpha
 
 # Display the generated values
 print(f"p= {p} (bit length: {p.nbits()})")
@@ -101,9 +144,6 @@ delta = 0.292
 bound_d = N**delta
 
 assert d < bound_d, "method wont work"
-
-#common case
-alpha = 1
 
 
 P = PolynomialRing(ZZ, 'x, y')
