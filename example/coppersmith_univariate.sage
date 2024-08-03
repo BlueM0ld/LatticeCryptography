@@ -19,7 +19,9 @@ def coppersmith_univariate(N, c, known_prefix, unknown_length, e=3):
         [0, 0, N*X, 0],
         [0, 0, 0, N]
     ])
-    print("Matrix M:\n", M)
+    print("Matrix M:\n")
+    print(M.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+
 
     # Compute and plot GSO norms, and get the reduced basis
     B = compute_and_plot_gso(M, "coppersmith_univariate")
@@ -47,26 +49,28 @@ def coppersmith_univariate(N, c, known_prefix, unknown_length, e=3):
 if __name__ == '__main__':
     # RSA modulus N
     #
-    #p= 788747484847318243237884906145734879122050907
-    #q=270424164320730666923881651314010367061256801
+    #p  = 1159186933806439500718855209573938792641634327
+    #q  = 739251066278939253402876857394291282900202471
     p = random_prime(2**150)
     q = random_prime(2**150)
     N = p * q
-    print("p (prime factor of N):", p)
-    print("q (prime factor of N):", q)
-    print("N (RSA modulus):", N)
+    print("p (prime factor of N) =", p)
+    print("q (prime factor of N) =", q)
+    print("N (RSA modulus) = ", N)
     
-    message = Integer('theenemyisonthenorthside', base=35)
+    message = Integer('theenemyishere', base=35)
     print("message_int", message)
 
     # Encrypt with e=3
     e = 3
     c = message**e % N
     print("Encrypted message c:", c)
+    print("e:", e)
+
 
     # Define the known and unknown parts of the message
-    known_prefix = 'theenemyisonthe000000000'
-    unknown_length = 9  # Length of the unknown part
+    known_prefix = 'theenemyis0000'
+    unknown_length = 4  # Length of the unknown part
 
     Q, recovered_root, recovered_message = coppersmith_univariate(N, c, known_prefix, unknown_length, e)
 
