@@ -2,161 +2,293 @@ from sage.all import *
 import matplotlib.pyplot as plt
 from fpylll import IntegerMatrix, GSO
 import os
-import uuid
 import numpy as np
+import time
+from fpylll.tools.quality import basis_quality
+import sys
 
 
-def plot_gso(original_log_gso_norms=None, reduced_log_gso_norms=None, output_file=None, reduction=""):
-
-    if output_file is None:
-        output_file = f"gso_plot_{uuid.uuid4()}.png"
-
-    if original_log_gso_norms is None and reduced_log_gso_norms is None:
-        print("No valid GSO norms to plot.")
-        return
-
-    plt.figure(figsize=(14, 6))
-
-    # subplot 1 - M Original GSO norms
-    if original_log_gso_norms is not None:
-        plt.subplot(1, 2, 1)
-        for i, vec in enumerate(original_log_gso_norms):
-            plt.plot(range(len(vec)), vec, label=f"Original Vector {i+1}")
-        plt.ylabel("log Gram-Schmidt Norms")
-        plt.title("Original GSO Norms")
-        plt.legend()
-
-    # subplot 2 - Reduced GSO norms
-    if reduced_log_gso_norms is not None:
-        plt.subplot(1, 2, 2)
-        for i, vec in enumerate(reduced_log_gso_norms):
-            plt.plot(range(len(vec)), vec,
-                     label=f"Reduced Vector {i+1}", linestyle='--')
-        plt.ylabel("log Gram-Schmidt Norms")
-        plt.title(f"Reduced GSO Norms - {reduction} Reduction")
-        plt.legend()
-
-    plt.savefig(output_file)
-    # plt.show()
-    plt.close()
+def get_basis_quality(M, debug=False):
+    bq = basis_quality(M)
+    listBq = [(k, v) for k, v in bq.items()]
+    if debug:
+        print("basis quality: ", listBq)
+    return bq
 
 
-def compute_and_plot_gso(M, folder, file_name=None, reduction="LLL"):
+def compute_and_plot_gso(M, folder, reduction):
+
+    # print(reduction)
+
+    print(f"Matrix Dimension: {M.dimensions()} ")
 
     # Check for result folder
-    res_dir = os.path.join("result", folder, reduction)
+
+    # res_dir = os.path.join("result", folder, reduction)
+    res_dir = os.path.join(os.path.abspath(
+        os.path.dirname(__file__)), "../result", folder, reduction)
     os.makedirs(res_dir, exist_ok=True)
 
-    # Generate unique file name using UUID
-    # TODO: need to update it to matcht expermiments rather than uuid
-    if file_name is None:
-        file_name = uuid.uuid4()
-
-    output_file = os.path.join(res_dir, f"gso_plot_{uuid.uuid4()}.png")
-
-    print("Matrix generated:")
-    print(M.str(rep_mapping=lambda x: str(x.n(digits=3))))
-
-    # M = scale_matrix(M)
-
-    original_log_gso_norms = None
     reduced_log_gso_norms = None
 
-    try:
-        original_log_gso_norms = compute_log_gso_norms(M)
-    except Exception as e:
-        print(f"Error computing original GSO norms: {e}")
+    start_time, reducedM, end_time = reduction_method(M, reduction)
 
-    if reduction == "LLL":
-        reducedM = M.LLL()
-    if reduction == "BKZ":
-        reducedM = M.BKZ()
+    elapsed_time = end_time - start_time
+    print("elapsed time: ", elapsed_time)
+
     try:
-        reduced_log_gso_norms = compute_log_gso_norms(reducedM)
-        save_data([reduced_log_gso_norms],  os.path.join(
-            res_dir, "reduced_gso_norms.npy"))
+        compute_log_gso_norms(reducedM, res_dir)
     except Exception as e:
         print(f"Error computing reduced GSO norms: {e}")
 
-    if original_log_gso_norms is not None or reduced_log_gso_norms is not None:
-        plot_gso(
-            original_log_gso_norms=[
-                original_log_gso_norms] if original_log_gso_norms is not None else None,
-            reduced_log_gso_norms=[
-                reduced_log_gso_norms] if reduced_log_gso_norms is not None else None,
-            output_file=output_file, reduction=reduction
-        )
-
-    if reducedM is not None:
-        print("Reduced Matrix generated:")
-        print(M.str(rep_mapping=lambda x: str(x.n(digits=3))))
-        print("COL:", reducedM.ncols())
-        print("ROWS:", reducedM.nrows())
-        print("DIMENSIONS:", reducedM.dimensions())
-
     return reducedM
 
-# scales the matrix by its GCD and changes the ring to ZZ.
 
-
-def scale_matrix(M):
-
-    gcd_M = M.gcd()
-    M = M * (1/gcd_M)
-    M = M.change_ring(ZZ)
+def scale_down(M, gcd):
+    if (gcd > 1):
+        T = M.apply_map(lambda x: x // gcd)
+        T.change_ring(ZZ)
+        return T
     return M
 
 
-# Computes the log GSO norms for a given matrix.
-def compute_log_gso_norms(M):
+def reduction_method(M, reduction):
+    if reduction == "LLL":
+        print("Performing LLL reduction...")
+        start_time = time.time()
+        reducedM = M.LLL()  # algorithm="fpLLL:heuristic", fp="rr", prec=5050)
+        end_time = time.time()
+    if reduction == "BKZ":
+        print("Performing BKZ reduction...")
+        start_time = time.time()
+        reducedM = M.BKZ(precision=8000)
+        end_time = time.time()
+    if reduction == "BKZ40":
+        print("Performing BKZ 40 reduction...")
+        start_time = time.time()
+        reducedM = M.BKZ(block_size=40, fp="rr",
+                         precision=8000)
+        end_time = time.time()
+    if reduction == "BKZ60":
+        print("Performing BKZ 60 reduction...")
+        start_time = time.time()
+        reducedM = M.BKZ(block_size=60, fp="rr",
+                         precision=8000)
+        end_time = time.time()
+    return start_time, reducedM, end_time
 
-    fpylll_matrix = convert_to_fpylll(M)
-    print(fpylll_matrix)
-    M_gso = GSO.Mat(fpylll_matrix)
+
+# returns the log GSO norms for a given matrix
+def compute_log_gso_norms(M, res_dir):
+
+    fpl_M = convert_to_fpylll(M)
+
+    M_gso = GSO.Mat(fpl_M)
     M_gso.update_gso()
+
     square_gso_norms = M_gso.r()
-    print("square gso norm", square_gso_norms)
-    log_gso_norms = [RR((log(norm, 2) / 2) if norm !=
-                        0 else float('0')) for norm in square_gso_norms]
-    return log_gso_norms
+    # print("square norms", square_gso_norms)
+    reduced_log_gso_norms = []
+    bas_quality = []
+    try:
+        reduced_log_gso_norms = [(RR((log(norm, 2))) if norm !=
+                                  0 else float('0')) for norm in square_gso_norms]
+        bas_quality = get_basis_quality(M_gso)
+
+        save_data([[M_gso.d], [reduced_log_gso_norms], bas_quality],
+                  res_dir, "reduced_gso_norms.npz")
+
+    except Exception as e:
+        print(
+            f"Error computing data for the GSO norms, exiting to save integrity of previous results: {e}")
+        # Exit Gracefully!
+        return
+
+    return  # reduced_log_gso_norms, M_gso.d, bas_quality
 
 
 def convert_to_fpylll(mat):
     return IntegerMatrix.from_matrix(mat)
 
 
-def save_data(data, filename):
-    if os.path.exists(filename):
-        existing_data = np.load(filename)
-        updated_data = np.append(existing_data, data, axis=0)
+def save_data(data, dir, filename):
+    path_file = os.path.join(dir, filename)
+
+    np_data = np.array(data, dtype=object)
+
+    if os.path.exists(path_file):
+        existing_data = np.load(path_file, allow_pickle=True)
+        existing_np_data = existing_data['arr_0']
+
+        # Handle varying lengths and concatenate
+        # Convert to lists to handle varying lengths properly
+        combined_data = list(existing_np_data) + list(np_data)
+        np.savez(path_file, arr_0=np.array(combined_data, dtype=object))
+
     else:
-        updated_data = data
-
-    np.save(filename, updated_data)
+        np.savez(path_file, np_data,  allow_pickle=True)
 
 
-def combine_gso_norms(attack, reduction):
-    res_dir = os.path.join("result", attack, reduction)
-    os.makedirs(res_dir, exist_ok=True)
-    # Load existing data
-    path_to_file = os.path.join(res_dir, "reduced_gso_norms.npy")
-    reduced_log_gso_norms = np.load(path_to_file)
-    print(reduced_log_gso_norms)
-    if reduced_log_gso_norms is not None:
-        plt.figure(figsize=(10, 6))
-        for i, vec in enumerate(reduced_log_gso_norms):
-            plt.plot(range(len(vec)), vec,
-                     label=f"Reduced Vector {i+1}", linestyle='--')
+def calculate_gso(red_norms):
+    # print("red_norms", red_norms)
+    pred_gsa = []
 
+    for norms in red_norms:
+        b1 = norms[0]  # First element of the sublist
+        # Normalize each element
+        normalized_norms = [norm-b1 for norm in norms]
+        pred_gsa.append(normalized_norms)
+
+    print(pred_gsa)
+
+
+def generate_graphs(attack, reduction, filename):
+    path_to_file = folder_check(attack, reduction, filename)
+
+    dimensions, red_norms, rhf = extract_data(path_to_file)
+    print("rhf", rhf)
+    # pred_gso = calculate_gso(red_norms)
+    plot_graph(attack, reduction, dimensions, red_norms)
+
+
+def plot_graph(attack, reduction, dimensions, red_norms):
+    for norms, dim in zip(red_norms, dimensions):
+        plt.figure(figsize=(7, 6))
+        plt.plot(norms, label=f'Dimension {dim}')
         plt.xlabel('Index')
-        plt.ylabel('log Gram-Schmidt Norms')
-        plt.title('Reduced GSO Norms Comparison')
+        plt.ylabel('Log GSO Norm')
+        plt.title(f'Log GSO Norms after {reduction} Reduction')
+        plt.grid()
         plt.legend()
-
-        output_file = os.path.join(res_dir, "collated_reduced_gso_norms.png")
-
-        plt.savefig(output_file)
         plt.show()
         plt.close()
-    else:
-        print(f"File {path_to_file} does not exist.")
+
+#        filename = f"{attack}_{reduction}_{dim}.png"
+#        output_file = os.path.join(res_dir, filename)
+#       plt.savefig(output_file)
+
+
+def combine_gso_norms(attack, reduction, filename):
+    path_to_file = folder_check(attack, reduction, filename)
+
+    dimensions, red_norms, rhf = extract_data(path_to_file)
+    iter = list(range(0, len(dimensions)))
+
+    # plot_red_gso_norms_iter(iter, red_norms, reduction)
+    # plot_bas_q_iter(iter, rhf)
+    plot_iter_combined(iter, red_norms, reduction, rhf)
+
+
+def extract_data(path_to_file):
+    reduced_log_gso_norms = np.load(path_to_file, allow_pickle=True)
+
+    data = reduced_log_gso_norms['arr_0']
+
+    # X values corresponding to each dataset
+    dimensions = [data[i-1][0] for i in range(1, len(data), 3)]
+    red_norms = []
+
+    for i in range(1, len(data), 3):
+        y = data[i][0]
+        # Handle infinities: Replace np.inf with a large number for plotting
+        y = [val if val != np.inf else max(y) + 1 for val in y]
+        red_norms.append(y)
+
+    rhf_list = []
+
+    for i in range(2, len(data), 3):
+        rhf = data[i]['rhf']
+        rhf_list.append(rhf)
+    return dimensions, red_norms, rhf_list
+
+
+def folder_check(attack_type, reduction_type, filename):
+    result_directory = os.path.join("../result", attack_type, reduction_type)
+    os.makedirs(result_directory, exist_ok=True)
+
+    if filename is None:
+        filename = "reduced_gso_norms"
+
+    file_path = os.path.join(result_directory, f"{filename}.npz")
+
+    # Check if the file exists
+    if not os.path.isfile(file_path):
+        print(
+            f"File does not exist: {file_path}, please check or run a reduction first!")
+        sys.exit(1)  # Exit Gracefully!
+
+    # Return the path to the file if it exists
+    return file_path
+
+
+def plot_red_gso_norms_iter(iter, red_norms, reduction):
+    plt.figure(figsize=(10, 6))
+    for norms, i in zip(red_norms, iter):
+        plt.plot(norms, label=f'Interation {i}')
+    plt.ylabel('Log GSO Norm')
+    plt.title(f'Log GSO Norms after {reduction} Reduction')
+   # plt.legend()
+    plt.grid()
+    plt.show()
+    plt.close()
+
+
+def plot_iter_combined(iter, red_norms, reduction, rhf):
+    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
+
+    # First subplot: Log GSO Norms
+    for norms, i in zip(red_norms, iter):
+        axs[0].plot(norms, label=f'Iteration {i}')
+    axs[0].set_ylabel('Log GSO Norm')
+    axs[0].set_title(f'Log GSO Norms after {reduction} Reduction')
+    axs[0].grid(True)
+    # axs[0].legend() # Uncomment to show legend
+
+    # Second subplot: Root Hermite Factor
+    axs[1].plot(iter, rhf, marker='o', label='Root Hermite Factor')
+    axs[1].set_xlabel('Iteration')
+    axs[1].set_ylabel('Root Hermite Factor')
+    axs[1].set_title('Root Hermite Factor per Iteration')
+    axs[1].grid(True)
+    # axs[1].legend() # Uncomment to show legend
+
+    plt.tight_layout()
+    plt.show()
+    plt.close()
+
+
+def plot_bas_q_iter(iter, rhf):
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(iter, rhf, marker='o', label=f'Iteration {iter}')
+    plt.xlabel('Iteration')
+    plt.ylabel('Root Hermite Factor')
+    plt.title('Root Hermite Factor per Iteration')
+    # plt.legend()
+    plt.grid()
+    plt.show()
+    plt.close()
+
+
+def plot_red_gso_norms_dimension(dimensions, red_norms, reduction):
+    plt.figure(figsize=(10, 6))
+    for norms, dim in zip(red_norms, dimensions):
+        plt.plot(norms, label=f'Dimension {dim}')
+    plt.ylabel('Log GSO Norm')
+    plt.title(f'Log GSO Norms after {reduction} Reduction')
+   # plt.legend()
+    plt.grid()
+    plt.show()
+    plt.close()
+
+
+def plot_bas_q_dimension(dimensions, rhf):
+    plt.figure(figsize=(10, 6))
+    plt.plot(dimensions, rhf, marker='o', label=f'Dimension {dimensions}')
+    plt.xlabel('Dimension')
+    plt.ylabel('Root Hermite Factor')
+    plt.title('Root Hermite Factor vs. Dimension')
+    plt.legend()
+    plt.grid()
+    plt.show()
+    plt.close()
