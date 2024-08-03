@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+pythonpath = "src"
+addopts = [
+    "--import-mode=importlib", 
+    "-p no:warnings" # sage deprecation warnings probs shouldnt do this
+]
