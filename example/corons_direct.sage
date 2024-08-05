@@ -19,7 +19,7 @@ def generate_monomial_order(k):
         for n in range(1, k + 1):
             monomial_order.append(x**m * y**n)
 
-    # Reverse the order as per the requirement
+    # Reverse the order 
     monomial_order.reverse()
 
     return monomial_order
@@ -52,6 +52,8 @@ def generate_n(k):
         for i in range(k):
             for j in range(k):
                 monomial = x^(i0 + i) * y^(j0 + j)
+                print("Matrix S MONOMILA generated:", monomial)
+
                 coeff = poly.coefficient(monomial)
                 row.append(coeff)
         S[index] = row
@@ -65,7 +67,7 @@ def generate_n(k):
     
     print("|Det(s)|: ", n)
     assert n > 0, "matrix S is NOT invertible"
-    assert n == 127**4, "matrix S is NOT invertible"
+    #assert n == 127**4, "matrix S is NOT invertible"
 
     return n
   
@@ -76,7 +78,11 @@ def find_roots(LRED, monomial_order, k, pxy):
     for r in range(LRED.nrows()):
         print("--------------------------------------------------")
 
-        u = sum(coeff * monomial for coeff, monomial in zip(LRED[r], monomial_order[k**2:]))
+        bound_order = [monomial.subs({x: X, y: Y}) for monomial in monomial_order]
+       # u = sum(coeff * monomial for coeff, monomial in zip(LRED[r], monomial_order[k**2:]))
+        u = sum(int(coeff / bounds)* monomial for coeff, monomial, bounds in zip(LRED[r], monomial_order[k**2:], bound_order[k**2:]))
+
+        
         gcd_coeff = gcd(u.coefficients())
         u = u // gcd_coeff
 
@@ -117,6 +123,8 @@ def find_roots(LRED, monomial_order, k, pxy):
 
 def coron_d(pxy, X, Y, k):
 
+    print("k",k)
+
     poly_degree = max(pxy.degrees())  # total_degree shouldnt be the sum of the degress but it is bug
     print("degree of polynomial ",poly_degree)
     i0, j0 = 1, 1  # stub numbers
@@ -132,8 +140,8 @@ def coron_d(pxy, X, Y, k):
     Spolynomials = []
     for a in range(k):
         for b in range(k):
-            #sxy = (X*x**a)*(Y*y**b)*pxy(X*x,Y*y)
-            sxy = (x**a)*(y**b)*pxy(x,y) ### found it issue with bounds!!! need to account in the lattice which i didnt!!!
+            sxy = (X*x**a)*(Y*y**b)*pxy(X*x,Y*y)
+            #sxy = (x**a)*(y**b)*pxy(x,y) ### found it issue with bounds!!! need to account in the lattice which i didnt!!!
             Spolynomials.append(sxy)
     Spolynomials.reverse()
 
@@ -141,6 +149,8 @@ def coron_d(pxy, X, Y, k):
     for i in range(k+poly_degree):
         for j in range(k+poly_degree):
             rxy = ((X*x)**i) * ((Y*y)**j) * n
+            #rxy = (x**i) * (y**j) * n
+
             Rpolynomials.append(rxy)
 
     print("this", Rpolynomials)
@@ -163,7 +173,8 @@ def coron_d(pxy, X, Y, k):
             M[i, index] = coeff[j]
 
     print("Matrix M generated:")
-    print(M)  
+    print(M.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+
 
     print(M.dimensions())
 
@@ -171,7 +182,8 @@ def coron_d(pxy, X, Y, k):
     L = L.echelon_form() ### As its over the integers echelon form is HNF(hermite normal form)!
 
     print("Matrix L generated:")
-    print(L)  
+    print(L.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+ 
     print(L.dimensions())
 
     lastpos = L.nonzero_positions_in_column(L.ncols()-1)[-1] ## for the l2 matrix
@@ -185,7 +197,8 @@ def coron_d(pxy, X, Y, k):
     L2 = L.submatrix(start_row, start_col, num_rows, num_cols)
     print("L2--------------------------------------------------")
 
-    print(L2)  
+    print(L2.str(rep_mapping=lambda x : str(x.n(digits=2))))  
+ 
 
     LRED = compute_and_plot_gso(L2, "coron_bivariate")
 
@@ -205,10 +218,36 @@ P = PolynomialRing(ZZ, 'x, y')
 x, y = P.gens()
     
 
-X = 30
-Y = 20
-pxy = 127*x*y - 1207*x - 1461*y + 21
+X = 25
+Y = 10
+#pxy = 127*x*y - 1207*x - 1461*y + 21
+pxy = 131*x*y - 1400*x + 20*y - 1286
  
+
+poly_degree = max(pxy.degrees())  # total_degree shouldnt be the sum of the degress but it is bug
+print("degree of polynomial ",poly_degree)
+
+
+
+# Compute W
+W = 0
+
+
+# Iterate through the coefficients and compute the maximum value
+for i in range(poly_degree + 1):
+    for j in range(poly_degree + 1):
+        F = abs(pxy(X**i, Y**j))
+        term_value = F* X**i * Y**j
+        print(term_value)
+        if term_value > W:
+            W = term_value
+
+deg = (2/(3*poly_degree))
+# Print the result
+print("X*Y =", X*Y)
+print(f"W = {W**deg}")    
+assert X*Y < W**deg, "there is not a solution "
+     
 res = coron_d(pxy, X, Y, k=2)
 
 print(res)

@@ -3,7 +3,7 @@ from gmpy2 import iroot
 import matplotlib.pyplot as plt
 from fpylll import GSO, IntegerMatrix
 from graph_plotting import compute_and_plot_gso, convert_to_fpylll 
-
+import binascii
 
 def generate_rsa_instance(bits=150, e=3):
     while True:
@@ -18,6 +18,7 @@ def generate_rsa_instance(bits=150, e=3):
 def encrypt_message(message, N , e):
     if N is None:
         generate_rsa_instance(150, 3)
+    
     
     message = Integer(message, base=35)
     cipher_text = message ** e % N 
@@ -37,7 +38,6 @@ def encrypt_message_lb(message, N , e):
 # we encrypt message with small e and different moduli N  
 # The attack states that as soon as p >= e
 # we can recover the message using (crt) Chinese Remainder Theorem
-# https://theory.stanford.edu/~gdurf/durfee-thesis-phd.pdf
 
 def hastads_attack(ciphertexts, moduli, e):
 
@@ -62,31 +62,32 @@ def hastads_attack(ciphertexts, moduli, e):
 # Hastad attack with coppersmith externsion
 def hastads_attack_lattice(ciphertexts, moduli, e):
     assert len(ciphertexts) == len(moduli), "The number of ciphertexts and N must be the same"
-
+    
     random_pad_factors = [c[0] for c in ciphertexts]
     random_pad_offsets = [c[1] for c in ciphertexts]
     ciphertext = [c[2] for c in ciphertexts]
     ni = moduli  # use moduli list
 
     M = Matrix.identity(len(ciphertexts))
+
     ti = []
     for i in range(len(ciphertexts)):
         ti.append(crt(list(M[i]), ni))  # use the Chinese Remainder Theorem on M
-
+    
     Zmodn = Zmod(prod(ni))
     R.<x> = PolynomialRing(Zmodn)
-
+    
     gi = []
     for i in range(len(ciphertexts)):
         gi.append(ti[i] * ((random_pad_factors[i] * x + random_pad_offsets[i]) ** e - ciphertext[i]))
 
+     
     g = sum(gi)
     g = g.monic()
+    
 
-    #roots = g.small_roots()
-    #Issue with tracking so used  
     roots = adapted_small_roots(g)
-
+    
     if roots:
         return roots[0]
     else:
@@ -160,7 +161,7 @@ def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
 
 if __name__ == "__main__":
     
-    bits = 512
+    bits = 512 ## 512 we run into a number issue # at 50 MATGSO.r() return inf
     e = 3
 
     rsa_instances = [generate_rsa_instance(bits, e) for _ in range(e)]
