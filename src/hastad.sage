@@ -32,8 +32,22 @@ def lattice_attack(ciphertexts, moduli, e):
     else:
         raise ValueError("Failed to find roots using Coppersmith's method")
 
-#####pulled from sage implementation for small roots!
+
+# Sage has an implementation using small roots we open this to update the call from LLL to our implemenation
 def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
+    r"""
+    REFERENCES:
+
+    Don Coppersmith. *Finding a small root of a univariate modular equation.*
+    In Advances in Cryptology, EuroCrypt 1996, volume 1070 of Lecture
+    Notes in Computer Science, p. 155--165. Springer, 1996.
+    http://cr.yp.to/bib/2001/coppersmith.pdf
+
+    Alexander May. *New RSA Vulnerabilities Using Lattice Reduction Methods.*
+    PhD thesis, University of Paderborn, 2003.
+    http://www.cs.uni-paderborn.de/uploads/tx_sibibtex/bp.pdf
+    """
+
     N = self.parent().characteristic()
 
     if not self.is_monic():
@@ -67,7 +81,8 @@ def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
         for j in range(g[i].degree() + 1):
             B[i, j] = g[i][j] * X**j
 
-    B = compute_and_plot_gso(B, "hastad")
+    # This is calling the reduction
+    B =  compute_and_plot_gso(B, "hastad", reduction=red)
 
     f = sum([ZZ(B[0, i] // X**i) * x**i for i in range(B.ncols())])
     R = f.roots()
@@ -77,11 +92,52 @@ def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
     Nbeta = N**beta
     return [root for root in roots if N.gcd(ZZ(self(root))) >= Nbeta]
 
-def hastads_attack_lattice(ciphertexts, moduli, e):
+def hastads_attack_lattice(ciphertexts, moduli, e, reduction):
 
+    # passes the reduction requested
+    global red
+    red = reduction
     try:
         recovered_message = lattice_attack(ciphertexts, moduli, e)
-        return recovered_message
+        conv_recovered_message = Integer(recovered_message).str(35)
+        return conv_recovered_message
     except ValueError as e:
         print(e)
-    
+
+
+# Naiive RSA key gen
+def generate_rsa_instance(bits, e):
+    while True:
+        p = random_prime(2**bits)
+        q = random_prime(2**bits)
+        N = p * q
+        phi_N = (p-1)*(q-1)
+        if gcd(phi_N, e) == 1:
+            break
+    return N, e
+
+# Encrypt plaintext with linear padding
+def encrypt_message_lb(message, N, e):
+    m = Integer(int(message, base=35))
+    random_pad_factor = randint(1, N - 1)
+    random_pad_offset = randint(1, N - 1)
+    padded_message = random_pad_factor * m + random_pad_offset
+    cipher_text = padded_message**e % N
+    return (random_pad_factor, random_pad_offset, cipher_text), N
+
+
+# Generate multiple ciphertexts with same e but different N
+def set_up_hastad(message, bits, e, k, debug=False):
+    rsa_instances = [generate_rsa_instance(bits, e) for _ in range(k)]
+    ciphertexts = []
+    moduli = []
+    for N, e in rsa_instances:
+        cipher_text, N_modulus = encrypt_message_lb(message, N, e)
+        ciphertexts.append(cipher_text)
+        moduli.append(N_modulus)
+
+    if debug:
+        print(f"e = {e}")
+        for i, (cipher, N) in enumerate(zip(ciphertexts, moduli)):
+            print(f"ciphertext {i}: {cipher[2]}, N={N}")
+    return ciphertexts, moduli
