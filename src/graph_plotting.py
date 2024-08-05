@@ -7,7 +7,8 @@ import time
 from fpylll.tools.quality import basis_quality
 import sys
 
-
+# Use fpylll utility tool to get RHF we down extract the RHF completely 
+# If we want to extend
 def get_basis_quality(M, debug=False):
     bq = basis_quality(M)
     listBq = [(k, v) for k, v in bq.items()]
@@ -18,11 +19,8 @@ def get_basis_quality(M, debug=False):
 
 def compute_and_plot_gso(M, folder, reduction):
 
-    # print(reduction)
-
     print(f"Matrix Dimension: {M.dimensions()} ")
 
-    # Check for result folder
 
     # res_dir = os.path.join("result", folder, reduction)
     res_dir = os.path.join(os.path.abspath(
@@ -30,8 +28,10 @@ def compute_and_plot_gso(M, folder, reduction):
     os.makedirs(res_dir, exist_ok=True)
 
     reduced_log_gso_norms = None
-
-    start_time, reducedM, end_time = reduction_method(M, reduction)
+    try:
+        start_time, reducedM, end_time = reduction_method(M, reduction)
+    except Exception as e:
+        print(f"Error in reduction call: {e}")
 
     elapsed_time = end_time - start_time
     print("elapsed time: ", elapsed_time)
@@ -44,6 +44,7 @@ def compute_and_plot_gso(M, folder, reduction):
     return reducedM
 
 
+# Scales the Matrix down not needed but if we do its here
 def scale_down(M, gcd):
     if (gcd > 1):
         T = M.apply_map(lambda x: x // gcd)
@@ -56,7 +57,7 @@ def reduction_method(M, reduction):
     if reduction == "LLL":
         print("Performing LLL reduction...")
         start_time = time.time()
-        reducedM = M.LLL()  # algorithm="fpLLL:heuristic", fp="rr", prec=5050)
+        reducedM = M.LLL()
         end_time = time.time()
     if reduction == "BKZ":
         print("Performing BKZ reduction...")
@@ -95,7 +96,8 @@ def compute_log_gso_norms(M, res_dir):
                                   0 else float('0')) for norm in square_gso_norms]
         bas_quality = get_basis_quality(M_gso)
 
-        save_data([[M_gso.d], [reduced_log_gso_norms], bas_quality],
+        # if no error saves reduced_log_gso_norms, M_gso.d, bas_quality
+        save_data([[M_gso.d], [reduced_log_gso_norms], bas_quality], 
                   res_dir, "reduced_gso_norms.npz")
 
     except Exception as e:
@@ -104,7 +106,7 @@ def compute_log_gso_norms(M, res_dir):
         # Exit Gracefully!
         return
 
-    return  # reduced_log_gso_norms, M_gso.d, bas_quality
+    return  
 
 
 def convert_to_fpylll(mat):
@@ -147,7 +149,6 @@ def generate_graphs(attack, reduction, filename):
 
     dimensions, red_norms, rhf = extract_data(path_to_file)
     print("rhf", rhf)
-    # pred_gso = calculate_gso(red_norms)
     plot_graph(attack, reduction, dimensions, red_norms)
 
 
@@ -163,19 +164,12 @@ def plot_graph(attack, reduction, dimensions, red_norms):
         plt.show()
         plt.close()
 
-#        filename = f"{attack}_{reduction}_{dim}.png"
-#        output_file = os.path.join(res_dir, filename)
-#       plt.savefig(output_file)
-
 
 def combine_gso_norms(attack, reduction, filename):
     path_to_file = folder_check(attack, reduction, filename)
 
     dimensions, red_norms, rhf = extract_data(path_to_file)
     iter = list(range(0, len(dimensions)))
-
-    # plot_red_gso_norms_iter(iter, red_norms, reduction)
-    # plot_bas_q_iter(iter, rhf)
     plot_iter_combined(iter, red_norms, reduction, rhf)
 
 
@@ -221,16 +215,16 @@ def folder_check(attack_type, reduction_type, filename):
     return file_path
 
 
-def plot_red_gso_norms_iter(iter, red_norms, reduction):
-    plt.figure(figsize=(10, 6))
-    for norms, i in zip(red_norms, iter):
-        plt.plot(norms, label=f'Interation {i}')
-    plt.ylabel('Log GSO Norm')
-    plt.title(f'Log GSO Norms after {reduction} Reduction')
-   # plt.legend()
-    plt.grid()
-    plt.show()
-    plt.close()
+# def plot_red_gso_norms_iter(iter, red_norms, reduction):
+#     plt.figure(figsize=(10, 6))
+#     for norms, i in zip(red_norms, iter):
+#         plt.plot(norms, label=f'Interation {i}')
+#     plt.ylabel('Log GSO Norm')
+#     plt.title(f'Log GSO Norms after {reduction} Reduction')
+#    # plt.legend()
+#     plt.grid()
+#     plt.show()
+#     plt.close()
 
 
 def plot_iter_combined(iter, red_norms, reduction, rhf):
@@ -257,38 +251,38 @@ def plot_iter_combined(iter, red_norms, reduction, rhf):
     plt.close()
 
 
-def plot_bas_q_iter(iter, rhf):
+# def plot_bas_q_iter(iter, rhf):
 
-    plt.figure(figsize=(10, 6))
-    plt.plot(iter, rhf, marker='o', label=f'Iteration {iter}')
-    plt.xlabel('Iteration')
-    plt.ylabel('Root Hermite Factor')
-    plt.title('Root Hermite Factor per Iteration')
-    # plt.legend()
-    plt.grid()
-    plt.show()
-    plt.close()
-
-
-def plot_red_gso_norms_dimension(dimensions, red_norms, reduction):
-    plt.figure(figsize=(10, 6))
-    for norms, dim in zip(red_norms, dimensions):
-        plt.plot(norms, label=f'Dimension {dim}')
-    plt.ylabel('Log GSO Norm')
-    plt.title(f'Log GSO Norms after {reduction} Reduction')
-   # plt.legend()
-    plt.grid()
-    plt.show()
-    plt.close()
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(iter, rhf, marker='o', label=f'Iteration {iter}')
+#     plt.xlabel('Iteration')
+#     plt.ylabel('Root Hermite Factor')
+#     plt.title('Root Hermite Factor per Iteration')
+#     # plt.legend()
+#     plt.grid()
+#     plt.show()
+#     plt.close()
 
 
-def plot_bas_q_dimension(dimensions, rhf):
-    plt.figure(figsize=(10, 6))
-    plt.plot(dimensions, rhf, marker='o', label=f'Dimension {dimensions}')
-    plt.xlabel('Dimension')
-    plt.ylabel('Root Hermite Factor')
-    plt.title('Root Hermite Factor vs. Dimension')
-    plt.legend()
-    plt.grid()
-    plt.show()
-    plt.close()
+# def plot_red_gso_norms_dimension(dimensions, red_norms, reduction):
+#     plt.figure(figsize=(10, 6))
+#     for norms, dim in zip(red_norms, dimensions):
+#         plt.plot(norms, label=f'Dimension {dim}')
+#     plt.ylabel('Log GSO Norm')
+#     plt.title(f'Log GSO Norms after {reduction} Reduction')
+#    # plt.legend()
+#     plt.grid()
+#     plt.show()
+#     plt.close()
+
+
+# def plot_bas_q_dimension(dimensions, rhf):
+#     plt.figure(figsize=(10, 6))
+#     plt.plot(dimensions, rhf, marker='o', label=f'Dimension {dimensions}')
+#     plt.xlabel('Dimension')
+#     plt.ylabel('Root Hermite Factor')
+#     plt.title('Root Hermite Factor vs. Dimension')
+#     plt.legend()
+#     plt.grid()
+#     plt.show()
+#     plt.close()
