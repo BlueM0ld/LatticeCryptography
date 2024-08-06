@@ -85,7 +85,6 @@ def experiment_hastad_increase_bits():
             print(f"Recovered message with {bits}-bit moduli: {Integer(recovered_message).str(35)}")
         except ValueError as ve:
             print(f"Failed with {bits}-bit moduli: {ve}")
-    #combine_gso_norms("hastad", "LLL")
 
 def experiment_hastad_vary_message_length():
     e = 3 #5
@@ -112,11 +111,14 @@ def experiment_hastad_vary_message_length():
 
 if __name__ == '__main__':
 
+   # Results here were not interesting you will need to update
+   # the tests individually 
+
    #experiment_hastad_increase_bits()
    #experiment_hastad_vary_message_length()
    #experiment_hastad_increase_e()
    #experiment_hastad_increase_people_k()
-   combine_gso_norms("hastad", "LLL")
+   combine_gso_norms("hastad", "LLL", "None")
 
    print("done")
 
