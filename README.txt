@@ -1,6 +1,7 @@
 # Lattice Cryptanalysis Project
 
 This project is an artifact for a master's level thesis. It explores cryptanalytic attacks on a relaxed RSA cryptosystem using lattice-based methods, which can be executed from the terminal.
+I verify that I am the sole author of the programmes contained in this archive, except where explicitly stated to the contrary.
 
 ![Terminal screenshot](misc/image-2.png)
 
