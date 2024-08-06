@@ -7,16 +7,15 @@ This project is an artifact for a master's level thesis. It explores cryptanalyt
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-   - [Prerequisites](#prerequisites)
-2. [Usage](#usage)
-3. [License](#license)
-4. [Acknowledgments](#acknowledgments)
-5. [References](#references)
+2. [Prerequisites](#prerequisites)
+3. [Installation](#installation)
+4. [Running](#running)
+5. [License](#license)
 
 
 ## Getting Started
 
-These are the steps to get this project running on your machine. Installation steps may vary slightly based on your operating system (Windows, Mac, etc.).
+These are the steps to get this project running on your machine. Installation steps may vary slightly based on your operating system (Windows, Mac, etc.)
 
 ### Prerequisites
 
@@ -41,7 +40,7 @@ To run this project, you will need the following:
    ```
 
 
-### Running
+## Running
 
 To run the script to execute attacks following these steps, these are executed at the root of the project. This has a pre-execution script that will ensure setup if you want to run the experiments.
 
@@ -62,8 +61,4 @@ To run the set experiments you will need to uncomment the tests and run the expe
 ## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
-
-## References
-
-Here are the papers that we're used in the implementation of these attacks.
 

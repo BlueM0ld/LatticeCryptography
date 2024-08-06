@@ -36,6 +36,9 @@ def lattice_attack(ciphertexts, moduli, e):
 # Sage has an implementation using small roots we open this to update the call from LLL to our implemenation
 def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
     r"""
+    
+    adapted from sage library this is not my implementation!
+
     REFERENCES:
 
     Don Coppersmith. *Finding a small root of a univariate modular equation.*

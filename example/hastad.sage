@@ -95,7 +95,7 @@ def hastads_attack_lattice(ciphertexts, moduli, e):
 
 def adapted_small_roots(self, X=None, beta=1.0, epsilon=None, **kwds):
     r"""
-    --- adapted from sage library!
+    --- adapted from sage library this is not my implementation!
 
     REFERENCES:
 
