@@ -224,7 +224,8 @@ def main():
         elif choice == '3':
             run_hastads_attack()
         elif choice == '4':
-            run_weiners_attack()
+            #run_weiners_attack()
+            print("Not available")
         elif choice == '5':
             run_generate_graph()
         elif choice == '6':
